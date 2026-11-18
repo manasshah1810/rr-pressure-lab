@@ -153,7 +153,7 @@ function paintFilters() {
   chip('#f-year', S.years, YEARS); chip('#f-phase', S.phases, PHASES);
   const n = (S.cls !== 'all') + (S.years.size < 5) + (S.phases.size < 3) + (S.min !== DEF.min);
   $('#reset').disabled = !n; $('#reset').textContent = n ? `Reset (${n})` : 'Reset';
-  $('#ftoggle-s').textContent = `${S.role === 'bat' ? 'Batting' : 'Bowling'}${n ? ` · ${n} active` : ''}`;
+  $('#ftoggle-s').innerHTML = `<b>${S.role === 'bat' ? 'Batting' : 'Bowling'}</b><i>·</i>${S.cls === 'all' ? 'IPL + T20I' : S.cls}<i>·</i>${S.years.size === 5 ? '2022–26' : [...S.years].sort().join(', ')}<i>·</i>${S.phases.size === 3 ? 'All phases' : [...S.phases].join(' + ')}<i>·</i>${S.min}+ balls${n ? `<em>${n} changed</em>` : ''}`;
   const cnt = table(S.role).length;
   const yr = S.years.size === 5 ? '2022–26' : [...S.years].sort().join(', ');
   const ph = S.phases.size === 3 ? 'all phases' : [...S.phases].join(' + ');
@@ -164,7 +164,7 @@ function bindFilters() {
   $$('#f-cls button').forEach(b => b.onclick = () => { S.cls = b.dataset.v; paintFilters(); changed(); });
   $('#f-min').oninput = e => { S.min = +e.target.value; $('#minv').textContent = S.min; clearTimeout(S._mt); S._mt = setTimeout(() => { paintFilters(); changed(); }, 120); };
   $('#reset').onclick = () => { S.cls = 'all'; S.years = new Set(YEARS); S.phases = new Set(PHASES); S.min = DEF.min; paintFilters(); changed(); toast('Filters reset'); };
-  $('#ftoggle').onclick = () => { const o = $('#filters').classList.toggle('open'); $('#ftoggle').setAttribute('aria-expanded', o); };
+  $('#ftoggle').onclick = () => { const o = $('#filters').classList.toggle('open'); $('#ftoggle').setAttribute('aria-expanded', o); $('#ft-edit').textContent = o ? 'Done' : 'Edit filters'; };
 }
 function changed() { sync(false); renderView(); }
 
@@ -293,16 +293,15 @@ function renderOverview() {
   }
   const st = rep ? rep.stats : {};
   const t = (l, v, s, flag) => { if (!flag) return `<div class="tile"><p>${l}</p><b>${v}</b><small>${s}</small></div>`; const base = rep ? rep.pAvg : lv, val = rep ? rep.pP : hp, dd = better(role, val, base); return `<div class="tile flag"><div><p>${l}</p><b>${v}</b><small>${s}</small></div><span class="delta pillish ${dd >= 0 ? 'up' : 'dn'}">${sgn(dd, role === 'bat' ? 0 : 2)}</span></div>`; };
+  $('#k-hint').insertAdjacentHTML('beforeend', `<span class="isl ${isl < 50 ? 'warn' : ''}">${Math.round(isl)}% of his balls in this filter came in the IPL${isl < 50 ? ', so weigh with care' : ''}.</span>`);
   $('#tiles').innerHTML = (role === 'bat' ? [
     t('Pressure strike rate', rep ? rep.pP : fmt(hp), rep ? `average batter, same balls: ${rep.pAvg}` : `league on pressure balls: ${fmt(lv)}`, 1),
     t('Holds up under', rep ? `${rep.defs} of 14` : '—', 'other definitions'),
     t(rep ? 'Career strike rate' : 'Normal strike rate', rep ? st['Strike rate'] : fmt(nm), rep ? `${st['Runs']} runs` : `${agg.n.b} other balls`),
-    t('IPL share of balls', Math.round(isl) + '%', isl < 50 ? 'mostly T20I, weigh with care' : 'in this filter'),
   ] : [
     t('Pressure economy', rep ? rep.pP.toFixed(2) : fmt(hp, 2), rep ? `average bowler, same balls: ${rep.pAvg.toFixed(2)}` : `league on pressure balls: ${fmt(lv, 2)}`, 1),
     t('Holds up under', rep ? `${rep.defs} of 14` : '—', 'other pressure definitions'),
     t(rep ? 'Wickets' : 'Normal economy', rep ? st['Wickets'] : fmt(nm, 2), rep ? `avg ${st['Average']} · SR ${st['Strike rate']}` : `${agg.n.b} other balls`),
-    t('IPL share of balls', Math.round(isl) + '%', isl < 50 ? 'mostly T20I, weigh with care' : 'in this filter'),
   ]).join('');
 
   $('#trend-metric').innerHTML = ms.slice(0, 3).map((m, i) => `<button class="${i === S.metric ? 'on' : ''}" data-i="${i}" aria-pressed="${i === S.metric}">${m.l}</button>`).join('');
@@ -493,11 +492,13 @@ function renderExplore() {
   ];
   const c = cols.find(x => x[0] === S.sort.k) || cols[4];
   T.sort((a, b) => { const x = c[4](a), y = c[4](b); const r = typeof x === 'string' || typeof y === 'string' ? String(x || '').localeCompare(String(y || '')) : x - y; return S.sort.asc ? r : -r; });
-  $('#tbl-count').textContent = `${T.length} players · click a header to sort · ☆ to shortlist`;
+  $('#tbl-count').innerHTML = `${T.length} players · click a header to sort <button class="linkbtn" id="morecols">${S.moreCols ? 'Fewer columns' : 'More columns'}</button>`;
+  $('#tbl').classList.toggle('lean', !S.moreCols);
   $('#tbl thead').innerHTML = '<tr>' + cols.map(x => `<th data-k="${x[0]}" class="${x[3] ? 'n' : ''} ${x[0] === c[0] ? 's' + (S.sort.asc ? ' asc' : '') : ''}" aria-sort="${x[0] === c[0] ? (S.sort.asc ? 'ascending' : 'descending') : 'none'}">${x[1]}</th>`).join('') + '<th></th></tr>';
   $('#tbl tbody').innerHTML = T.map(p => `<tr data-id="${p.id}" class="${isRRteam(PL[p.id].ipl) ? 'rr' : ''}">` + cols.map(x => `<td class="${x[3] ? 'n' : ''}">${x[2](p)}</td>`).join('') + `<td>${starBtn(role, p.id)}</td></tr>`).join('') || `<tr><td colspan="11" class="muted">No one qualifies. Lower the minimum balls or widen the filters.</td></tr>`;
   $$('#tbl th[data-k]').forEach(th => th.onclick = () => { const k = th.dataset.k; S.sort = { k, asc: S.sort.k === k ? !S.sort.asc : k === 'name' || k === 'team' }; renderExplore(); });
   bindRows('#tbl', role);
+  $('#morecols').onclick = () => { S.moreCols = !S.moreCols; renderExplore(); };
 }
 
 /* ---------- COMPARE ---------- */
