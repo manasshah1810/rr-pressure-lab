@@ -193,7 +193,7 @@ function renderOverview() {
   const tot = phAgg.reduce((s, a) => s + a.b, 0) || 1;
   const cols = [css('--pink'), css('--gold'), css('--ink')];
   $('#phase-sub').textContent = `${tot} pressure balls`;
-  $('#phasebars').innerHTML = PHASES.map((ph, i) => { const a = phAgg[i], pc = a.b / tot * 100; return `<div class="pb"><div class="col"><div class="fill" style="height:${Math.max(pc, 4)}%;background:${cols[i]};color:${i === 2 ? css('--frame') : i === 1 ? '#2b1e00' : '#fff'}">${Math.round(pc)}%<small>${ms[0].l.split(' ')[0]} ${fmt(ms[0].f(a), ms[0].d)}</small></div></div><span>${ph}</span></div>`; }).join('');
+  $('#phasebars').innerHTML = PHASES.map((ph, i) => { const a = phAgg[i], pc = a.b / tot * 100; const inner = pc < 14 ? '' : `${Math.round(pc)}%<small>${ms[0].l.split(' ')[0]} ${fmt(ms[0].f(a), ms[0].d)}</small>`; return `<div class="pb"><div class="col"><div class="fill" style="height:${Math.max(pc, 4)}%;background:${cols[i]};color:${i === 2 ? css('--frame') : i === 1 ? '#2b1e00' : '#fff'}">${inner}</div></div><span>${ph} · ${Math.round(pc)}%</span></div>`; }).join('');
 
   // gauge
   const gv = rep ? rep.reruns : Math.round(agg.hp.b / (agg.all.b || 1) * 100);
