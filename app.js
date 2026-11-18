@@ -22,6 +22,18 @@ const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).
 const fmt = (v, d = 1) => v == null || !isFinite(v) ? '—' : v.toFixed(d);
 const sgn = (v, d = 1) => v == null || !isFinite(v) ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
 const initials = n => n.split(' ').map(w => w[0]).slice(0, 2).join('');
+const shortN = n => n.length > 15 ? n.split(' ')[0][0] + '. ' + n.split(' ').slice(1).join(' ') : n;
+const TEAM_AB = { 'Rajasthan Royals': 'RR', 'Mumbai Indians': 'MI', 'Chennai Super Kings': 'CSK', 'Royal Challengers Bengaluru': 'RCB', 'Royal Challengers Bangalore': 'RCB', 'Kolkata Knight Riders': 'KKR', 'Delhi Capitals': 'DC', 'Punjab Kings': 'PBKS', 'Sunrisers Hyderabad': 'SRH', 'Gujarat Titans': 'GT', 'Lucknow Super Giants': 'LSG' };
+const teamAb = s => { if (!s) return ''; const m = s.match(/^(.*) \((\d+)\)$/); return m ? (TEAM_AB[m[1]] || m[1]) + ' ' + m[2] : s; };
+const RECENT = new Set([2025, 2026]);
+function callOf(rep, isl) {
+  if (!rep) return null;
+  if (rep.tier === 'STRONG' && rep.reruns >= 60 && isl >= 50) return ['Back', 'Strong tier, top 10 in 60%+ of re-runs and mostly IPL balls'];
+  if (rep.tier === 'FRINGE' || isl < 50 || rep.defs <= 3) return ['Caution', rep.tier === 'FRINGE' ? 'Fragile rank: top 10 in under 30% of re-runs' : isl < 50 ? 'Most pressure balls came in T20Is' : 'Top 10 under only ' + rep.defs + ' of 14 definitions'];
+  return ['Watch', 'Contender: solid rating, but the rank could move'];
+}
+const callTag = (rep, isl) => { const c = callOf(rep, isl); return c ? `<span class="call ${c[0]}" title="${c[1]}">${c[0]}</span>` : ''; };
+const iplShareOf = (role, id) => { let t = 0, i = 0; D[role].forEach(r => { if (r[0] === id) { t += r[5]; if (r[2] === 'IPL') i += r[5]; } }); return t ? i / t * 100 : 0; };
 const roleWord = r => r === 'bat' ? 'batters' : 'bowlers';
 const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 1800); };
 const charts = {};
@@ -144,7 +156,7 @@ function paintFilters() {
   const cnt = table(S.role).length;
   const yr = S.years.size === 5 ? '2022–26' : [...S.years].sort().join(', ');
   const ph = S.phases.size === 3 ? 'all phases' : [...S.phases].join(' + ');
-  $('#fsum').innerHTML = `<span><b>${cnt} ${roleWord(S.role)}</b> · ${S.cls === 'all' ? 'IPL + T20I' : S.cls} · ${yr} · ${ph} · ${S.min}+ balls</span><span>Click a season or phase to isolate it, shift-click to add more. Filters change raw stats only; report ratings stay fixed.</span>${S.cls !== 'IPL' ? '<span class="warn">T20I balls include weaker opposition. Pick IPL for like-for-like.</span>' : ''}`;
+  $('#fsum').innerHTML = `<span><b>${cnt} ${roleWord(S.role)}</b> · ${S.cls === 'all' ? 'IPL + T20I' : S.cls} · ${yr} · ${ph} · ${S.min}+ balls</span>${S.cls !== 'IPL' ? '<span class="warn" title="T20I balls include weaker opposition. Pick IPL for like-for-like.">⚠ includes T20I</span>' : ''}<span class="help">Click a season or phase to isolate it, shift-click to add. Filters move raw stats only; report ratings stay fixed.</span>`;
 }
 function bindFilters() {
   $$('#f-role button').forEach(b => b.onclick = () => { S.role = b.dataset.v; S.metric = 0; paintFilters(); changed(); });
@@ -160,11 +172,11 @@ const IDX = []; ['bat', 'bowl'].forEach(role => new Set(D[role].map(r => r[0])).
 let act = -1, cur = [];
 function suggest() {
   const q = $('#q').value.trim().toLowerCase(), box = $('#sugg');
-  if (!q) { box.classList.remove('on'); $('#sbox').setAttribute('aria-expanded', 'false'); return; }
+  if (!q) { box.classList.remove('on'); $('#q').setAttribute('aria-expanded', 'false'); return; }
   cur = IDX.filter(x => x.key.includes(q)).sort((a, b) => (b.key.startsWith(q) - a.key.startsWith(q)) || (!!b.rep - !!a.rep) || a.n.localeCompare(b.n)).slice(0, 10);
   act = cur.length ? 0 : -1;
   box.innerHTML = cur.length ? cur.map((x, i) => `<button role="option" data-i="${i}" class="${i === act ? 'act' : ''}">${x.n}${x.rep ? ` · #${x.rep.rank}` : ''}<span>${x.role === 'bat' ? 'Batting' : 'Bowling'}</span></button>`).join('') : `<p>No player matches "${$('#q').value.replace(/</g, '')}"</p>`;
-  box.classList.add('on'); $('#sbox').setAttribute('aria-expanded', 'true');
+  box.classList.add('on'); $('#q').setAttribute('aria-expanded', 'true');
   $$('#sugg button').forEach(b => b.onmousedown = e => { e.preventDefault(); pick(+b.dataset.i); });
 }
 function pick(i) { const x = cur[i]; if (!x) return; $('#q').value = ''; $('#sugg').classList.remove('on'); $('#q').blur(); openPlayer(x.role, x.id); }
@@ -186,7 +198,7 @@ function openPlayer(role, id) {
 }
 function setView(v) { S.from = null; S.view = v; sync(true); applyView(); }
 function applyView() {
-  $$('#tabs button').forEach(b => { const on = b.dataset.view === S.view; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  $$('#tabs button[data-view]').forEach(b => { const on = b.dataset.view === S.view; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   $$('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + S.view));
   const f = FILTER_VIEWS.has(S.view);
   $('#filters').classList.toggle('off', !f); $('#fnote').classList.toggle('on', !f);
@@ -207,38 +219,44 @@ const hov = (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' 
 
 /* ---------- RR ROOM ---------- */
 function renderRR() {
-  const role = S.role, main = M[role][0];
+  const role = S.role, main = M[role][0], word = role === 'bat' ? 'strike rate' : 'economy';
+  $$('#rr-role button').forEach(b => { b.classList.toggle('on', b.dataset.v === role); b.onclick = () => { S.role = b.dataset.v; S.metric = 0; paintFilters(); changed(); }; });
   const squad = RR_SQUAD.filter(id => D[role].some(r => r[0] === id));
   const AG = aggregate(role);
-  $('#rr-intro').innerHTML = `RR's 2026 IPL squad members with enough data (<b>${squad.length} ${roleWord(role)}</b>), pooled on pressure balls and set against every regular in the data on the same kind of balls, phase by phase. A red edge means the squad loses ground there. The names under each card are players outside RR's 2026 squad who did better in that phase; <span class="tag CONTENDER">pool</span> marks the report's 2027 auction pool.`;
-  $('#gaps').innerHTML = PHASES.map(ph => {
+  const cards = PHASES.map(ph => {
     const P = new Set([ph]), sq = blank(); rows(role, { phases: P }).forEach(r => { if (r[4] && squad.includes(r[0])) add(sq, r); });
-    const L = league(role, { phases: P }).hp, sv = main.f(sq), lv = main.f(L), d = better(role, sv, lv);
+    const lv = main.f(league(role, { phases: P }).hp), sv = main.f(sq), d = better(role, sv, lv);
+    const tol = role === 'bat' ? 3 : 0.25;
+    const st = sq.b < 30 ? 'few' : d < -tol ? 'weak' : d > tol ? 'ok' : 'eq';
     const pa = aggregate(role, { phases: P });
-    const cands = Object.values(pa).filter(p => !squad.includes(p.id) && p.hp.b >= 30 && (poolBy[role + p.id] || !/2026/.test(PL[p.id].ipl)))
-      .map(p => ({ id: p.id, v: main.f(p.hp), b: p.hp.b })).sort((a, b) => better(role, b.v, a.v) * -1 || 0).sort((a, b) => better(role, a.v, b.v) < 0 ? 1 : -1).slice(0, 3);
-    const weak = d < 0, few = sq.b < 30;
-    return `<div class="gap ${few ? '' : weak ? 'weak' : 'ok'}"><p class="kicker">${ph} · pressure ${main.l.toLowerCase()}</p>
-      ${few ? `<b>—</b><p>Only ${sq.b} squad pressure balls here. Not enough to judge.</p>` : `<b>${fmt(sv, main.d)}</b><span class="d ${weak ? 'dn' : 'up'}">${sgn(d, main.d)} vs league ${fmt(lv, main.d)}</span>
-      <p>${sq.b} squad pressure balls. ${weak ? 'A gap to fill.' : 'Holding up.'}</p>`}
-      <div class="fill-list">${cands.map(c => `<button data-open="${c.id}">${PL[c.id].n}${poolBy[role + c.id] ? ' <span class="tag CONTENDER">pool</span>' : ''}<span>${fmt(c.v, main.d)} · ${c.b} balls</span></button>`).join('') || '<span class="muted">No clear options in this filter.</span>'}</div></div>`;
-  }).join('');
+    const cands = Object.values(pa).filter(p => !squad.includes(p.id) && p.hp.b >= 40 && p.ipl / p.all.b >= .5 && better(role, main.f(p.hp), lv) > 0 && (poolBy[role + p.id] || !/2026/.test(PL[p.id].ipl)))
+      .map(p => ({ id: p.id, v: main.f(p.hp), b: p.hp.b })).sort((x, y) => better(role, y.v, x.v)).slice(0, 4);
+    return { ph, sq, sv, lv, d, st, cands };
+  });
+  const weak = cards.filter(c => c.st === 'weak').sort((x, y) => x.d - y.d);
+  $('#rr-h').textContent = weak.length ? `RR's ${role === 'bat' ? 'batting' : 'bowling'} gap is the ${weak.map(c => c.ph.toLowerCase()).join(' and ')}: ${sgn(weak[0].d, main.d)} ${word} vs the league on pressure balls.` : `RR's ${roleWord(role)} hold up in every phase on pressure balls in this filter.`;
+  $('#rr-intro').innerHTML = `${squad.length} squad ${roleWord(role)} with data, pooled and set against every regular on the same pressure balls.`;
+  $('#gaps').innerHTML = cards.map(c => `<div class="gap ${c.st === 'weak' ? 'weak' : c.st === 'ok' ? 'ok' : ''}"><p class="kicker">${c.ph}</p>
+      ${c.st === 'few' ? `<b>—</b><p>Only ${c.sq.b} squad pressure balls. Too few to judge.</p>` : `<b>${fmt(c.sv, main.d)}</b><span class="d ${c.st === 'weak' ? 'dn' : c.st === 'ok' ? 'up' : 'eq'}">${c.st === 'eq' ? 'Level with' : sgn(c.d, main.d) + ' vs'} league ${fmt(c.lv, main.d)}</span>
+      <p>${c.sq.b} squad pressure balls · ${c.st === 'weak' ? 'gap to fill' : c.st === 'ok' ? 'a strength' : 'no edge either way'}</p>`}
+      <p class="sub">Better here, outside RR's squad</p>
+      <div class="fill-list">${c.cands.map(x => { const rp = repBy[role + x.id], pl = poolBy[role + x.id]; return `<button data-open="${x.id}" class="${x.b < 60 ? 'thin' : ''}">${PL[x.id].n}${pl ? ' <span class="tag CONTENDER">pool</span>' : ''}${rp ? ` <span class="tag ${rp.tier}">#${rp.rank}</span>` : ''}<span>${fmt(x.v, main.d)} · ${x.b} balls</span></button>`; }).join('') || '<span class="muted">Nobody clearly better with 40+ IPL-heavy balls.</span>'}</div></div>`).join('');
+  $('#rr-legend').innerHTML = `Red = squad behind the league by more than ${role === 'bat' ? '3 strike-rate points' : '0.25 an over'}; green = ahead by more. Suggestions need 40+ pressure balls in that phase, mostly in the IPL; faded names have under 60. <span class="tag CONTENDER">pool</span> = report's 2027 auction pool, <span class="tag STRONG">#n</span> = report rank.`;
   $$('#gaps [data-open]').forEach(b => b.onclick = () => openPlayer(role, +b.dataset.open));
-  const L = main.f(league(role).hp);
-  const list = squad.map(id => AG[id]).filter(p => p && p.hp.b >= 15).map(p => ({ id: p.id, n: PL[p.id].n, v: main.f(p.hp), b: p.hp.b, nv: main.f(p.n) })).sort((a, b) => better(role, b.v, a.v));
-  $('#rrsq-h').textContent = `RR ${roleWord(role)}: pressure ${main.l.toLowerCase()}`;
+  const L = main.f(league(role).hp), RECs = aggregate(role, { years: RECENT });
+  const shrink = p => better(role, main.f(p.hp), L) * p.hp.b / (p.hp.b + 150);
+  const list = squad.map(id => AG[id]).filter(p => p && p.hp.b >= 15).map(p => ({ id: p.id, n: PL[p.id].n, v: main.f(p.hp), b: p.hp.b, nv: main.f(p.n), adj: shrink(p), rec: RECs[p.id] && RECs[p.id].hp.b >= 20 ? main.f(RECs[p.id].hp) : null })).sort((x, y) => y.adj - x.adj);
+  $('#rrsq-h').textContent = `RR ${roleWord(role)}: edge on pressure balls, sample-adjusted`;
   empty('rrbar', list.length ? '' : 'No RR squad players with 15+ pressure balls in this filter. Widen seasons or phases.');
   if (list.length) chart('rrbar', {
-    type: 'bar', data: { labels: list.map(p => p.n), datasets: [
-      { data: list.map(p => +p.v.toFixed(2)), backgroundColor: list.map(p => better(role, p.v, L) >= 0 ? css('--pink') : css('--pink') + '55'), borderRadius: 6, barPercentage: .7 },
-      { type: 'line', data: list.map(() => +L.toFixed(2)), borderColor: css('--gold'), borderDash: [4, 4], borderWidth: 1.5, pointRadius: 0 } ] },
-    options: { indexAxis: 'y', maintainAspectRatio: false, onClick: (e, els) => { if (els[0]) openPlayer(role, list[els[0].index].id); }, onHover: hov,
-      plugins: { legend: { display: false }, tooltip: { ...tip(), filter: c => c.datasetIndex === 0, callbacks: { label: c => { const p = list[c.dataIndex]; return [`Pressure ${fmt(p.v, main.d)} · normal ${fmt(p.nv, main.d)}`, `League on pressure balls ${fmt(L, main.d)}`, `${p.b} pressure balls`]; } } } },
-      scales: { x: { grid: grid() }, y: { grid: { display: false }, ticks: { color: css('--ink') } } } }
+    type: 'bar', data: { labels: list.map(p => shortN(p.n)), datasets: [{ data: list.map(p => +p.adj.toFixed(2)), backgroundColor: list.map(p => p.adj >= 0 ? css('--pink') : css('--blue-2')), borderRadius: 6, barPercentage: .7 }] },
+    options: { indexAxis: 'y', maintainAspectRatio: false, layout: { padding: { left: 6 } }, onClick: (e, els) => { if (els[0]) openPlayer(role, list[els[0].index].id); }, onHover: hov,
+      plugins: { legend: { display: false }, tooltip: { ...tip(), callbacks: { title: c => list[c[0].dataIndex].n, label: c => { const p = list[c.dataIndex]; return [`Raw ${word} ${fmt(p.v, main.d)} vs league ${fmt(L, main.d)}`, `${p.b} pressure balls, so the edge shrinks to ${sgn(p.adj, main.d)}`]; } } } },
+      scales: { x: { grid: grid(), title: { display: true, text: `${word} edge vs league, shrunk for small samples` } }, y: { grid: { display: false }, ticks: { color: css('--ink'), padding: 6 } } } }
   });
-  $('#rrtbl-s').textContent = `${list.length} players · gold line on chart = league ${fmt(L, main.d)}`;
-  $('#rrtbl thead').innerHTML = `<tr><th>Player</th><th class="n">Pressure balls</th><th class="n">${main.l} pressure</th><th class="n">Normal</th><th class="n">vs league</th><th>Report</th><th></th></tr>`;
-  $('#rrtbl tbody').innerHTML = list.map(p => { const rep = repBy[role + p.id], d = better(role, p.v, L); return `<tr data-id="${p.id}"><td><b>${p.n}</b></td><td class="n">${p.b}</td><td class="n">${fmt(p.v, main.d)}</td><td class="n">${fmt(p.nv, main.d)}</td><td class="n ${d >= 0 ? 'up' : 'dn'}">${sgn(d, main.d)}</td><td>${rep ? `<span class="tag ${rep.tier}">#${rep.rank}</span>` : '<span class="muted">—</span>'}</td><td>${starBtn(role, p.id)}</td></tr>`; }).join('');
+  $('#rrtbl-s').textContent = `${list.length} players · league ${fmt(L, main.d)} · faded = under 100 pressure balls`;
+  $('#rrtbl thead').innerHTML = `<tr><th>Player</th><th class="n">Pressure</th><th class="n">vs league</th><th class="n">Other balls</th><th class="n">2025–26</th><th>Report</th><th></th></tr>`;
+  $('#rrtbl tbody').innerHTML = list.map(p => { const rp = repBy[role + p.id], d = better(role, p.v, L); return `<tr data-id="${p.id}" class="${p.b < 100 ? 'thin' : ''}"><td><b>${p.n}</b><br><span class="muted">${p.b} pressure balls</span></td><td class="n">${fmt(p.v, main.d)}</td><td class="n ${d >= 0 ? 'up' : 'dn'}">${sgn(d, main.d)}</td><td class="n">${fmt(p.nv, main.d)}</td><td class="n">${fmt(p.rec, main.d)}</td><td>${rp ? `<span class="tag ${rp.tier}">#${rp.rank}</span>` : '<span class="muted">—</span>'}</td><td>${starBtn(role, p.id)}</td></tr>`; }).join('');
   bindRows('#rrtbl', role);
 }
 
@@ -262,7 +280,7 @@ function renderOverview() {
   if (rep) {
     $('#k-main-l').innerHTML = `Pressure rating <span class="scope rep">Report</span><button class="info" data-tip="Runs he ${role === 'bat' ? 'added' : 'saved'} per 100 pressure balls compared with an average player on exactly the same balls. +10 is about 2 runs every 20 balls.">i</button>`;
     $('#k-main').textContent = sgn(rep.rating);
-    $('#verdict').innerHTML = `<span class="tier ${rep.tier}">${rep.tier}</span><span>${rep.pb} pressure balls · runs ${role === 'bat' ? 'added' : 'saved'} per 100</span>`;
+    $('#verdict').innerHTML = `${callTag(rep, iplShareOf(role, id))}<span class="tier ${rep.tier}">${rep.tier}</span><span>${rep.pb} pressure balls · runs ${role === 'bat' ? 'added' : 'saved'} per 100</span>`;
     $('#k-hint').textContent = rep.blurb;
   } else {
     $('#k-main-l').innerHTML = `${main.l} on pressure balls <span class="scope live">Filtered</span>`;
@@ -272,7 +290,7 @@ function renderOverview() {
     $('#k-hint').textContent = agg.hp.b < 30 ? `Only ${agg.hp.b} pressure balls in this filter, so treat these numbers as noise.` : 'Outside the report top 10, so this view uses the raw ball-by-ball splits under your filters.';
   }
   const st = rep ? rep.stats : {};
-  const t = (l, v, s, flag) => `<div class="tile ${flag ? 'flag' : ''}"><p>${l}</p><b>${v}</b><small>${s}</small></div>`;
+  const t = (l, v, s, flag) => { if (!flag) return `<div class="tile"><p>${l}</p><b>${v}</b><small>${s}</small></div>`; const base = rep ? rep.pAvg : lv, val = rep ? rep.pP : hp, dd = better(role, val, base); return `<div class="tile flag"><div><p>${l}</p><b>${v}</b><small>${s}</small></div><span class="delta ${dd >= 0 ? 'up' : 'dn'}">${sgn(dd, role === 'bat' ? 0 : 2)}</span></div>`; };
   $('#tiles').innerHTML = (role === 'bat' ? [
     t('Pressure strike rate', rep ? rep.pP : fmt(hp), rep ? `average batter, same balls: ${rep.pAvg}` : `league on pressure balls: ${fmt(lv)}`, 1),
     t('Holds up under', rep ? `${rep.defs} of 14` : '—', 'other pressure definitions'),
@@ -370,40 +388,42 @@ function renderRank() {
       { type: 'scatter', data: list.map(p => ({ x: p.rank, y: p.name })), backgroundColor: css('--ink'), pointRadius: 5, pointHoverRadius: 7 } ] },
     options: { indexAxis: 'y', maintainAspectRatio: false, onClick: click, onHover: hov, plugins: { legend: { display: false }, tooltip: { ...tip(), callbacks: { label: c => c.datasetIndex ? `Report rank #${c.raw.x}` : `Likely #${c.raw[0]} to #${c.raw[1]}` } } }, scales: { x: { min: 0, max: 50, title: { display: true, text: 'rank, lower is better' }, grid: grid() }, y: { type: 'category', grid: { display: false }, ticks: { color: css('--ink') } } } } });
   const pk = role === 'bat' ? 'Pressure SR v avg' : 'Pressure econ v avg';
-  $('#rktbl thead').innerHTML = `<tr><th>Player</th><th class="n">#</th><th>Role</th><th>2027 status</th><th class="n">Rating</th><th>Tier</th><th class="n">${pk}</th><th class="n">Pressure balls</th><th>Holds under</th><th class="n">Rank stability</th><th></th></tr>`;
+  $('#rktbl thead').innerHTML = `<tr><th>Player</th><th class="n">#</th><th>Role</th><th>2027 status</th><th class="n">Rating</th><th>Tier</th><th class="n">${pk}</th><th class="n">Pressure balls</th><th>Holds under</th><th class="n">Rank stability</th><th>Call</th><th></th></tr>`;
   $('#rktbl tbody').innerHTML = list.map(p => `<tr data-id="${p.id}" class="${isRRteam(PL[p.id].ipl) ? 'rr' : ''}"><td><b>${p.name}</b></td><td class="n">${p.rank}</td><td>${p.role}</td><td>${p.status.replace(' for 2027', '')}</td><td class="n">${sgn(p.rating)}</td><td><span class="tag ${p.tier}">${p.tier}</span></td>
-    <td class="n">${role === 'bat' ? p.pP : p.pP.toFixed(2)} <span class="muted">v ${role === 'bat' ? p.pAvg : p.pAvg.toFixed(2)}</span></td><td class="n">${p.pb}</td><td><span class="meter"><i style="width:${p.defs / 14 * 100}%"></i></span>${p.defs}/14</td><td class="n">${p.reruns}%</td><td>${starBtn(role, p.id)}</td></tr>`).join('');
+    <td class="n">${role === 'bat' ? p.pP : p.pP.toFixed(2)} <span class="muted">v ${role === 'bat' ? p.pAvg : p.pAvg.toFixed(2)}</span></td><td class="n">${p.pb}</td><td><span class="meter"><i style="width:${p.defs / 14 * 100}%"></i></span>${p.defs}/14</td><td class="n">${p.reruns}%</td><td>${callTag(p, iplShareOf(role, p.id))}</td><td>${starBtn(role, p.id)}</td></tr>`).join('');
   bindRows('#rktbl', role);
 }
 
 /* ---------- EXPLORER ---------- */
 function renderExplore() {
-  const role = S.role, ms = M[role], main = ms[0], T = table(role), L = main.f(league(role).hp);
-  $('#sc-sub').textContent = role === 'bat' ? 'Strike rate. Above the line = faster under pressure than his own normal. Pink = report top 10, gold = RR. Click a dot.' : 'Economy. Below the line = cheaper under pressure than his own normal. Pink = report top 10, gold = RR. Click a dot.';
+  const role = S.role, ms = M[role], main = ms[0], T = table(role), L = main.f(league(role).hp), RC = aggregate(role, { years: RECENT });
+  T.forEach(p => { const r = RC[p.id]; p.rec = r && r.hp.b >= 20 ? main.f(r.hp) : null; });
+  $('#sc-sub').textContent = role === 'bat' ? 'Strike rate. Above the line = faster under pressure than his own normal. Pink = report top 10, white = RR, blue = everyone else. Click a dot.' : 'Economy. Below the line = cheaper under pressure than his own normal. Pink = report top 10, white = RR, blue = everyone else. Click a dot.';
   empty('scatter', T.length ? '' : 'No one qualifies. Lower the minimum balls or widen the filters.');
   if (T.length) {
     const vals = T.flatMap(p => [p.hpm, p.nm]).filter(isFinite), lo = Math.floor(Math.min(...vals) * .95), hi = Math.ceil(Math.max(...vals) * 1.03);
     const bmax = Math.max(...T.map(p => p.hp.b), 1);
     chart('scatter', { type: 'scatter', data: { datasets: [
         { type: 'line', data: [{ x: lo, y: lo }, { x: hi, y: hi }], borderColor: css('--ink-3'), borderDash: [4, 4], pointRadius: 0, borderWidth: 1 },
-        { data: T.map(p => ({ x: +p.nm.toFixed(2), y: +p.hpm.toFixed(2) })), pointRadius: T.map(p => 3 + p.hp.b / bmax * 8), pointHoverRadius: T.map(p => 6 + p.hp.b / bmax * 8),
-          backgroundColor: T.map(p => p.rep ? css('--pink') : isRRteam(PL[p.id].ipl) ? css('--gold') : css('--blue-2') + '55'), borderWidth: 0 } ] },
+        { data: T.map(p => ({ x: +p.nm.toFixed(2), y: +p.hpm.toFixed(2) })), pointRadius: T.map(p => p.rep || isRRteam(PL[p.id].ipl) ? 6 : 4), pointHoverRadius: 8,
+          backgroundColor: T.map(p => p.rep ? css('--pink') : isRRteam(PL[p.id].ipl) ? css('--ink') : css('--blue-2') + '77'), borderColor: css('--card'), borderWidth: T.map(p => p.rep || isRRteam(PL[p.id].ipl) ? 2 : 0) } ] },
       options: { maintainAspectRatio: false, onClick: (e, els) => { const el = els.find(x => x.datasetIndex === 1); if (el) openPlayer(role, T[el.index].id); }, onHover: (e, els) => { e.native.target.style.cursor = els.some(x => x.datasetIndex === 1) ? 'pointer' : 'default'; },
         plugins: { legend: { display: false }, tooltip: { ...tip(), filter: c => c.datasetIndex === 1, callbacks: { title: c => T[c[0].dataIndex].name, label: c => { const p = T[c.dataIndex]; return [`Pressure ${fmt(p.hpm, main.d)} · normal ${fmt(p.nm, main.d)}`, `${p.hp.b} pressure balls · ${Math.round(p.iplShare)}% IPL`]; } } } },
         scales: { x: { min: lo, max: hi, title: { display: true, text: `${main.l}, other balls` }, grid: grid() }, y: { min: lo, max: hi, title: { display: true, text: `${main.l}, pressure balls` }, grid: grid() } } } });
   }
   const Lb = [...T].filter(p => p.hp.b >= 60).sort((a, b) => b.vsl - a.vsl).slice(0, 12);
-  $('#lift-sub').textContent = `${role === 'bat' ? 'Strike rate' : 'Economy'} on pressure balls minus the league's ${fmt(L, main.d)} in this filter · 60+ pressure balls · "T20I" = mostly T20I balls`;
-  chart('liftbar', { type: 'bar', data: { labels: Lb.map(p => p.name + (p.iplShare < 50 ? ' · T20I' : '')), datasets: [{ data: Lb.map(p => +p.vsl.toFixed(2)), backgroundColor: Lb.map(p => p.rep ? css('--pink') : p.iplShare < 50 ? css('--blue-2') + '88' : css('--gold')), borderRadius: 6 }] },
+  $('#lift-sub').textContent = `${role === 'bat' ? 'Strike rate' : 'Economy'} on pressure balls minus the league's ${fmt(L, main.d)} in this filter · 60+ pressure balls · pink = report top 10 · outlined = mostly T20I balls`;
+  chart('liftbar', { type: 'bar', data: { labels: Lb.map(p => p.name + (p.iplShare < 50 ? ' · T20I' : '')), datasets: [{ data: Lb.map(p => +p.vsl.toFixed(2)), backgroundColor: Lb.map(p => p.rep ? css('--pink') : p.iplShare < 50 ? 'transparent' : css('--blue-2')), borderColor: Lb.map(p => p.rep ? css('--pink') : css('--blue-2')), borderWidth: Lb.map(p => p.iplShare < 50 ? 1.5 : 0), borderRadius: 6 }] },
     options: { indexAxis: 'y', maintainAspectRatio: false, onClick: (e, els) => { if (els[0]) openPlayer(role, Lb[els[0].index].id); }, onHover: hov, plugins: { legend: { display: false }, tooltip: { ...tip(), callbacks: { label: c => { const p = Lb[c.dataIndex]; return [`${sgn(p.vsl, main.d)} vs league`, `${fmt(p.hpm, main.d)} on ${p.hp.b} pressure balls`, `${Math.round(p.iplShare)}% IPL`]; } } } }, scales: { x: { grid: grid() }, y: { grid: { display: false }, ticks: { color: css('--ink') } } } } });
 
   const cols = [
     ['name', 'Player', p => `<b>${p.name}</b>${p.rep ? ` <span class="tag ${p.rep.tier}">#${p.rep.rank}</span>` : ''}${p.iplShare < 50 ? ' <span class="tag t20">T20I</span>' : ''}`, 0, p => p.name],
-    ['team', 'Last IPL side', p => PL[p.id].ipl || '<span class="muted">—</span>', 0, p => PL[p.id].ipl],
+    ['team', 'Last IPL', p => teamAb(PL[p.id].ipl) || '<span class="muted">—</span>', 0, p => PL[p.id].ipl],
     ['hpb', 'Pressure balls', p => p.hp.b, 1, p => p.hp.b],
     ['hpm', `${main.l} pressure`, p => fmt(p.hpm, main.d), 1, p => role === 'bat' ? p.hpm : -p.hpm],
     ['vsl', 'vs league', p => `<span class="${p.vsl >= 0 ? 'up' : 'dn'}">${sgn(p.vsl, main.d)}</span>`, 1, p => p.vsl],
-    ['nm', 'Normal', p => fmt(p.nm, main.d), 1, p => role === 'bat' ? p.nm : -p.nm],
+    ['rec', '2025–26', p => fmt(p.rec, main.d), 1, p => p.rec == null ? -1e9 : role === 'bat' ? p.rec : -p.rec],
+    ['nm', 'Other balls', p => fmt(p.nm, main.d), 1, p => role === 'bat' ? p.nm : -p.nm],
     ['lift', 'vs own normal', p => `<span class="${p.lift >= 0 ? 'up' : 'dn'}">${sgn(p.lift, main.d)}</span>`, 1, p => p.lift],
     ['dotp', 'Pressure dot %', p => fmt(ms[1].f(p.hp)), 1, p => ms[1].f(p.hp)],
     ['ipl', 'IPL %', p => Math.round(p.iplShare) + '%', 1, p => p.iplShare],
@@ -460,7 +480,7 @@ function renderAuction() {
   const role = S.role, list = R.pool[role];
   $('#au-h').innerHTML = `Best ${roleWord(role)} under pressure in the 2027 auction pool <span class="scope rep">Report</span>`;
   chart('aubar', { type: 'bar', data: { labels: list.map(p => p.n), datasets: [{ data: list.map(p => p.rating), backgroundColor: list.map(p => /^RR/.test(p.last) ? css('--pink') : p.tier === 'STRONG' ? css('--gold') : p.tier === 'CONTENDER' ? css('--blue-2') : css('--blue-2') + '66'), borderRadius: 6 }] },
-    options: { maintainAspectRatio: false, onClick: (e, els) => { const p = els[0] && list[els[0].index]; if (p && p.id) openPlayer(role, p.id); }, onHover: hov, plugins: { legend: { display: false }, tooltip: { ...tip(), callbacks: { label: c => { const p = list[c.dataIndex]; return [`Rating ${sgn(p.rating)} · ${p.tier}`, `Overall #${p.rank} · last ${p.last}`]; } } } }, scales: { y: { grid: grid() }, x: { grid: { display: false }, ticks: { color: css('--ink'), maxRotation: 40, autoSkip: false } } } } });
+    options: { maintainAspectRatio: false, onClick: (e, els) => { const p = els[0] && list[els[0].index]; if (p && p.id) openPlayer(role, p.id); }, onHover: hov, plugins: { legend: { display: false }, tooltip: { ...tip(), callbacks: { label: c => { const p = list[c.dataIndex]; return [`Rating ${sgn(p.rating)} · ${p.tier}`, `Overall #${p.rank} · last ${p.last}`]; } } } }, scales: { y: { grid: { color: css('--line') }, title: { display: true, text: 'Rating: runs per 100 pressure balls vs average' } }, x: { grid: { display: false }, ticks: { color: css('--ink'), maxRotation: 40, autoSkip: false } } } } });
   $('#autbl thead').innerHTML = `<tr><th>Player</th><th class="n">#</th><th class="n">Overall rank</th><th class="n">Rating</th><th>Tier</th><th class="n">${role === 'bat' ? 'Pressure SR v avg' : 'Pressure econ v avg'}</th><th class="n">Pressure balls</th><th>IPL share</th><th>Last IPL team</th><th></th></tr>`;
   $('#autbl tbody').innerHTML = list.map((p, i) => `<tr data-id="${p.id || ''}" class="${/^RR/.test(p.last) ? 'rr' : ''}"><td><b>${p.n}</b></td><td class="n">${i + 1}</td><td class="n">#${p.rank} of ${role === 'bat' ? 52 : 66}</td><td class="n">${sgn(p.rating)}</td><td><span class="tag ${p.tier}">${p.tier}</span></td><td class="n">${p.cmp}</td><td class="n">${p.pb}</td><td><span class="meter"><i style="width:${p.ipl}%"></i></span>${p.ipl}%</td><td>${p.last}</td><td>${p.id ? starBtn(role, p.id) : ''}</td></tr>`).join('');
   bindRows('#autbl', role);
@@ -485,7 +505,8 @@ function renderMethod() {
 }
 
 /* ---------- boot ---------- */
-$$('#tabs button').forEach(b => b.onclick = () => setView(b.dataset.view));
+$$('#tabs button[data-view]').forEach(b => { b.setAttribute('aria-controls', 'v-' + b.dataset.view); b.onclick = () => { $('#tabs').classList.remove('open'); $('#more').textContent = 'More'; setView(b.dataset.view); }; });
+$('#more').onclick = () => { const o = $('#tabs').classList.toggle('open'); $('#more').setAttribute('aria-expanded', o); $('#more').textContent = o ? 'Less' : 'More'; };
 $('#brand').onclick = e => { e.preventDefault(); setView('rr'); };
 $('#theme').onclick = () => { const c = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = c; try { localStorage.setItem('rr-theme', c); } catch (e) {} renderView(); };
 $('#sl-open').onclick = openSL; $('#sl-close').onclick = closeSL; $('#scrim').onclick = closeSL;

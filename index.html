@@ -22,17 +22,18 @@
       <button role="tab" data-view="rank">Top 10 report</button>
       <button role="tab" data-view="overview">Player</button>
       <button role="tab" data-view="explore">Explore all</button>
-      <button role="tab" data-view="compare">Head to head</button>
-      <button role="tab" data-view="auction">Auction pool</button>
-      <button role="tab" data-view="method">How it works</button>
+      <button role="tab" data-view="compare" class="xtra">Head to head</button>
+      <button role="tab" data-view="auction" class="xtra">Auction pool</button>
+      <button role="tab" data-view="method" class="xtra">How it works</button>
+      <button class="more" id="more" aria-haspopup="true" aria-expanded="false">More</button>
     </nav>
     <div class="top-r">
       <button class="icon" id="sl-open" title="Shortlist" aria-label="Open shortlist"><svg width="18" height="18" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6L12 16.8 6.6 19.6l1.1-6L3.2 9.4l6.1-.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="cnt" id="sl-cnt" hidden>0</span></button>
       <button class="icon" id="theme" aria-label="Switch light or dark theme"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z" fill="currentColor"/></svg></button>
     </div>
-    <div class="search" role="combobox" aria-expanded="false" aria-haspopup="listbox" id="sbox">
+    <div class="search" id="sbox">
       <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-4-4" stroke="currentColor" stroke-width="2"/></svg>
-      <input id="q" placeholder="Search 294 players" autocomplete="off" aria-label="Search players" aria-controls="sugg">
+      <input id="q" role="combobox" aria-expanded="false" aria-autocomplete="list" placeholder="Search 294 players" autocomplete="off" aria-label="Search players" aria-controls="sugg">
       <kbd>/</kbd>
       <div class="sugg" id="sugg" role="listbox"></div>
     </div>
@@ -44,7 +45,7 @@
     <div class="fg"><span class="kicker">Comp</span><div class="seg" id="f-cls"><button data-v="all" class="on">IPL + T20I</button><button data-v="IPL">IPL</button><button data-v="T20I">T20I</button></div></div>
     <div class="fg"><span class="kicker">Season</span><div class="chips" id="f-year"></div></div>
     <div class="fg"><span class="kicker">Phase</span><div class="chips" id="f-phase"></div></div>
-    <div class="fg"><label class="slider"><span class="kicker">Min balls</span><input type="range" id="f-min" min="50" max="1200" step="25" value="300" aria-label="Minimum balls"><b id="minv">300</b></label></div>
+    <div class="fg"><label class="slider"><span class="kicker">Min balls faced</span><input type="range" id="f-min" min="50" max="1200" step="25" value="300" aria-label="Minimum balls"><b id="minv">300</b></label></div>
     <button class="ghost" id="reset" disabled>Reset</button>
     <div class="fsum" id="fsum"></div>
   </section>
@@ -52,16 +53,18 @@
 
   <main id="main">
   <!-- RR ROOM -->
-  <section class="view" id="v-rr" aria-labelledby="rr-h">
+  <section class="view" role="tabpanel" id="v-rr" aria-labelledby="rr-h">
     <div class="card rr-hero">
-      <p class="kicker">RR room <span class="scope live">Filtered</span></p>
-      <h2 id="rr-h">Where Rajasthan's 2026 squad bends under pressure</h2>
+      <div class="rr-top"><p class="kicker">RR room · 2026 squad on pressure balls <span class="scope live">Filtered</span></p>
+      <div class="seg" id="rr-role"><button data-v="bat">Batting</button><button data-v="bowl">Bowling</button></div></div>
+      <h2 id="rr-h">—</h2>
       <p id="rr-intro"></p>
       <div class="gaps" id="gaps"></div>
+      <p class="muted small" id="rr-legend"></p>
     </div>
     <div class="row2">
       <div class="card">
-        <div class="card-head"><h3 id="rrsq-h">RR squad on pressure balls</h3><span class="muted">Bar = pressure number, tick = league average on pressure balls. Click to open.</span></div>
+        <div class="card-head"><h3 id="rrsq-h">RR squad on pressure balls</h3><span class="muted">Pink = ahead of the league on pressure balls, blue = behind. Small samples are pulled toward zero. Click a bar.</span></div>
         <div class="chart-wrap rk"><canvas id="rrbar" aria-label="RR squad pressure chart"></canvas><div class="empty" id="rrbar-e" hidden></div></div>
       </div>
       <div class="card">
@@ -72,7 +75,7 @@
   </section>
 
   <!-- RANKINGS -->
-  <section class="view" id="v-rank">
+  <section class="view" role="tabpanel" id="v-rank">
     <div class="howto">
       <div class="card"><h3>Read it as tiers, not places</h3><p id="ht1"></p></div>
       <div class="card"><h3>A record, not a forecast</h3><p>Pressure ratings barely repeat from 2022–24 to 2025–26 (batting −0.09, bowling 0.06). Use them as evidence of what a player has done when it counted, next to scouting, not as a prediction.</p></div>
@@ -99,7 +102,7 @@
   </section>
 
   <!-- PLAYER -->
-  <section class="view" id="v-overview">
+  <section class="view" role="tabpanel" id="v-overview">
     <div class="card hero">
       <button class="back" id="back">← Back</button>
       <div class="hero-head">
@@ -159,7 +162,7 @@
   </section>
 
   <!-- EXPLORER -->
-  <section class="view" id="v-explore">
+  <section class="view" role="tabpanel" id="v-explore">
     <div class="row2">
       <div class="card">
         <div class="card-head"><h3>Normal vs pressure</h3><span class="muted" id="sc-sub"></span></div>
@@ -177,7 +180,7 @@
   </section>
 
   <!-- COMPARE -->
-  <section class="view" id="v-compare">
+  <section class="view" role="tabpanel" id="v-compare">
     <div class="card cmp-pick">
       <select id="ca" aria-label="Player A"></select><span class="vs">vs</span><select id="cb" aria-label="Player B"></select>
     </div>
@@ -189,7 +192,7 @@
   </section>
 
   <!-- AUCTION -->
-  <section class="view" id="v-auction">
+  <section class="view" role="tabpanel" id="v-auction">
     <div class="card">
       <div class="card-head"><h3 id="au-h">Best under pressure in the 2027 auction pool</h3><span class="muted">Not on any 2027 retained list · played 2025 or 2026 · pink = last played for RR</span></div>
       <div class="chart-wrap md"><canvas id="aubar" aria-label="Auction pool ratings"></canvas></div>
@@ -201,7 +204,7 @@
   </section>
 
   <!-- METHOD -->
-  <section class="view" id="v-method">
+  <section class="view" role="tabpanel" id="v-method">
     <div class="steps" id="steps"></div>
     <div class="row2">
       <div class="card">
