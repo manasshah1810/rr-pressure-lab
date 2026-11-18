@@ -29,6 +29,7 @@ const RECENT = new Set([2025, 2026]);
 function callOf(rep, isl) {
   if (!rep) return null;
   if (rep.tier === 'STRONG' && rep.reruns >= 60 && isl >= 50) return ['Back', 'Strong tier, top 10 in 60%+ of re-runs and mostly IPL balls'];
+  if (rep.small && rep.tier !== 'STRONG') return ['Caution', 'Under 200 pressure balls and not STRONG in re-runs'];
   if (rep.tier === 'FRINGE' || isl < 50 || rep.defs <= 3) return ['Caution', rep.tier === 'FRINGE' ? 'Fragile rank: top 10 in under 30% of re-runs' : isl < 50 ? 'Most pressure balls came in T20Is' : 'Top 10 under only ' + rep.defs + ' of 14 definitions'];
   return ['Watch', 'Contender: solid rating, but the rank could move'];
 }
@@ -269,7 +270,7 @@ function renderOverview() {
   $('#back').textContent = '← Back to ' + ({ rank: 'Top 10 report', explore: 'Explore all', rr: 'RR room', auction: 'Auction pool', compare: 'Head to head', method: 'How it works' }[S.from] || '');
   $('#back').onclick = () => setView(S.from);
   $('#p-name').textContent = P.n;
-  $('#p-team').textContent = rep ? `${role === 'bat' ? 'Batter' : 'Bowler'} · #${rep.rank} of ${role === 'bat' ? 52 : 66} · ${rep.role} · ${rep.status}` : [role === 'bat' ? 'Batter' : 'Bowler', P.ipl ? 'Last IPL: ' + P.ipl : 'No IPL side in data', P.nat].filter(Boolean).join(' · ');
+  $('#p-team').textContent = rep ? `${role === 'bat' ? 'Batter' : 'Bowler'} · #${rep.rank} of ${role === 'bat' ? R.meta.qualBat : R.meta.qualBowl} · ${rep.role} · ${rep.status}` : [role === 'bat' ? 'Batter' : 'Bowler', P.ipl ? 'Last IPL: ' + P.ipl : 'No IPL side in data', P.nat].filter(Boolean).join(' · ');
   $('#p-star').textContent = inSL(role, id) ? '★ Shortlisted' : '☆ Shortlist'; $('#p-star').classList.toggle('on', inSL(role, id));
   $('#p-star').onclick = () => toggleSL(role, id);
   $('#p-cmp').onclick = () => { const nxt = R.players.find(p => p.type === role && p.id !== id); S.cmp[role] = [id, nxt.id]; setView('compare'); };
@@ -280,7 +281,7 @@ function renderOverview() {
   if (rep) {
     $('#k-main-l').innerHTML = `Pressure rating <span class="scope rep">Report</span><button class="info" data-tip="Runs he ${role === 'bat' ? 'added' : 'saved'} per 100 pressure balls compared with an average player on exactly the same balls. +10 is about 2 runs every 20 balls.">i</button>`;
     $('#k-main').textContent = sgn(rep.rating);
-    $('#verdict').innerHTML = `${callTag(rep, iplShareOf(role, id))}<span class="tier ${rep.tier}">${rep.tier}</span><span>${rep.pb} pressure balls · runs ${role === 'bat' ? 'added' : 'saved'} per 100</span>`;
+    $('#verdict').innerHTML = `${callTag(rep, iplShareOf(role, id))}<span class="tier ${rep.tier}">${rep.tier}</span><span>${rep.pb} pressure balls${rep.pm ? ` in ${rep.pm} matches` : ''}${rep.beat ? ` · beat the benchmark in ${rep.beat[0]} of ${rep.beat[1]} matches` : ''}</span>${rep.small ? '<span class="tag t20" title="Under 200 pressure balls: the rating rests on a smaller sample">small sample</span>' : ''}`;
     $('#k-hint').textContent = rep.blurb;
   } else {
     $('#k-main-l').innerHTML = `${main.l} on pressure balls <span class="scope live">Filtered</span>`;
@@ -343,8 +344,8 @@ function renderOverview() {
   $('#plist').innerHTML = tot ? PHASES.map((ph, i) => { const a = phA[i], v = main.f(a), d = better(role, v, phL[i]); return `<div class="prow"><span class="dot" style="background:${cols[i]}"></span><span><b>${ph}</b> <span class="v">${Math.round(a.b / tot * 100)}% · ${a.b} balls</span></span><span>${a.b >= 12 ? fmt(v, main.d) : '—'}</span><span class="v ${a.b >= 12 ? (d >= 0 ? 'up' : 'dn') : ''}" title="vs league on pressure balls in this phase">${a.b >= 12 ? sgn(d, main.d) + ' vs lg' : 'few balls'}</span></div>`; }).join('') : '<p class="muted">No pressure balls in this filter.</p>';
 
   if (rep) {
-    $('#g-h').innerHTML = 'Rank stability <span class="scope rep">Report</span><button class="info" data-tip="The ranking was re-run 100 times on reshuffled matches. This is how often he stayed in the top 10.">i</button>';
-    $('#g-num').textContent = rep.reruns + '%'; $('#g-sub').textContent = 'of 100 re-runs kept him top 10';
+    $('#g-h').innerHTML = 'Rank stability <span class="scope rep">Report</span><button class="info" data-tip="The ranking was re-run 180 times, each on a resample of whole matches. This is how often he stayed in the top 10.">i</button>';
+    $('#g-num').textContent = rep.reruns + '%'; $('#g-sub').textContent = 'of 180 re-runs kept him top 10';
     $('#g-foot').textContent = rep.lo ? `Likely rank range #${rep.lo} to #${rep.hi}` : 'Rank range not published for this player';
   } else {
     const v = agg.all.b ? Math.round(agg.hp.b / agg.all.b * 100) : 0;
@@ -366,15 +367,15 @@ function renderOverview() {
 
   $('#knocks-card').style.display = rep ? '' : 'none';
   if (rep) {
-    $('#knocks-h').innerHTML = (role === 'bat' ? 'Best pressure knocks' : 'Best pressure spells') + ' <span class="scope rep">Report</span>';
-    $('#knocks').innerHTML = rep.games.map(g => `<div class="kn"><div><div class="opp">v ${g.opp}</div><div class="cmp">${g.comp}</div></div><div class="fig">${g.fig}</div><div class="sit">${g.sit} · ${g.pb} pressure balls</div><span class="res ${g.res === 'no result' ? 'no' : g.res}">${g.res}</span><div class="gain">+${g.gain}</div></div>`).join('');
+    $('#knocks-h').innerHTML = (role === 'bat' ? 'Pressure knocks: best and worst' : 'Pressure spells: best and worst') + ' <span class="scope rep">Report</span>';
+    $('#knocks').innerHTML = rep.games.map(g => `<div class="kn"><div><div class="opp">v ${g.opp}</div><div class="cmp">${g.comp}</div></div><div class="fig">${g.fig}</div><div class="sit">${g.sit} · ${g.pb} pressure balls</div><span class="res ${g.res === 'no result' ? 'no' : g.res}">${g.res}</span><div class="gain ${g.gain < 0 ? 'dn' : ''}">${g.gain > 0 ? '+' : g.gain < 0 ? '−' : ''}${Math.abs(g.gain)}</div></div>`).join('');
   }
 }
 
 /* ---------- RANKINGS ---------- */
 function renderRank() {
   const role = S.role, list = R.players.filter(p => p.type === role);
-  $('#ht1').textContent = role === 'bat' ? 'Places 4–10 sit within about 3 runs per 100 balls of each other. The tier says how secure a place is; the range chart shows how far it could move.' : 'Bumrah and Rashid are tied at +16.3. From #6 down the gaps are under 2 runs per 100 balls, so read the tier first.';
+  $('#ht1').textContent = role === 'bat' ? 'Places 2–5 sit within 0.7 runs per 100 balls, and 6–10 within 1.5. The tier says how secure a place is; the range chart shows how far it could move.' : 'Rashid leads Bumrah by 1.4. From #3 to #8 the ratings sit within 2.4 runs per 100 balls, so read the tier first.';
   const G = [['Locks', 'STRONG', 'top 10 in 60%+ of re-runs', css('--good')], ['Contenders', 'CONTENDER', '30–59%', css('--gold')], ['Fragile', 'FRINGE', 'under 30%', css('--ink-3')]];
   $('#groups').innerHTML = G.map(([h, t, s, c]) => `<div class="grp"><h4><span style="width:8px;height:8px;border-radius:50%;background:${c}"></span>${h} <span class="muted">${s}</span></h4>${list.filter(p => p.tier === t).sort((a, b) => b.reruns - a.reruns).map(p => `<button data-id="${p.id}">#${p.rank} ${p.name}<span>${p.reruns}% · ${sgn(p.rating)}</span></button>`).join('') || '<p class="muted">None</p>'}</div>`).join('');
   $$('#groups [data-id]').forEach(b => b.onclick = () => openPlayer(role, +b.dataset.id));
@@ -482,7 +483,7 @@ function renderAuction() {
   chart('aubar', { type: 'bar', data: { labels: list.map(p => p.n), datasets: [{ data: list.map(p => p.rating), backgroundColor: list.map(p => /^RR/.test(p.last) ? css('--pink') : p.tier === 'STRONG' ? css('--gold') : p.tier === 'CONTENDER' ? css('--blue-2') : css('--blue-2') + '66'), borderRadius: 6 }] },
     options: { maintainAspectRatio: false, onClick: (e, els) => { const p = els[0] && list[els[0].index]; if (p && p.id) openPlayer(role, p.id); }, onHover: hov, plugins: { legend: { display: false }, tooltip: { ...tip(), callbacks: { label: c => { const p = list[c.dataIndex]; return [`Rating ${sgn(p.rating)} · ${p.tier}`, `Overall #${p.rank} · last ${p.last}`]; } } } }, scales: { y: { grid: { color: css('--line') }, title: { display: true, text: 'Rating: runs per 100 pressure balls vs average' } }, x: { grid: { display: false }, ticks: { color: css('--ink'), maxRotation: 40, autoSkip: false } } } } });
   $('#autbl thead').innerHTML = `<tr><th>Player</th><th class="n">#</th><th class="n">Overall rank</th><th class="n">Rating</th><th>Tier</th><th class="n">${role === 'bat' ? 'Pressure SR v avg' : 'Pressure econ v avg'}</th><th class="n">Pressure balls</th><th>IPL share</th><th>Last IPL team</th><th></th></tr>`;
-  $('#autbl tbody').innerHTML = list.map((p, i) => `<tr data-id="${p.id || ''}" class="${/^RR/.test(p.last) ? 'rr' : ''}"><td><b>${p.n}</b></td><td class="n">${i + 1}</td><td class="n">#${p.rank} of ${role === 'bat' ? 52 : 66}</td><td class="n">${sgn(p.rating)}</td><td><span class="tag ${p.tier}">${p.tier}</span></td><td class="n">${p.cmp}</td><td class="n">${p.pb}</td><td><span class="meter"><i style="width:${p.ipl}%"></i></span>${p.ipl}%</td><td>${p.last}</td><td>${p.id ? starBtn(role, p.id) : ''}</td></tr>`).join('');
+  $('#autbl tbody').innerHTML = list.map((p, i) => `<tr data-id="${p.id || ''}" class="${/^RR/.test(p.last) ? 'rr' : ''}"><td><b>${p.n}</b></td><td class="n">${i + 1}</td><td class="n">#${p.rank} of ${role === 'bat' ? R.meta.qualBat : R.meta.qualBowl}</td><td class="n">${sgn(p.rating)}</td><td><span class="tag ${p.tier}">${p.tier}</span></td><td class="n">${p.cmp}</td><td class="n">${p.pb}</td><td><span class="meter"><i style="width:${p.ipl}%"></i></span>${p.ipl}%</td><td>${p.last}</td><td>${p.id ? starBtn(role, p.id) : ''}</td></tr>`).join('');
   bindRows('#autbl', role);
 }
 
@@ -490,13 +491,13 @@ function renderAuction() {
 function renderMethod() {
   $('#steps').innerHTML = R.meta.steps.map((s, i) => `<div class="step"><p class="kicker">Step ${i + 1}</p><h4>${s[0]}</h4><p>${s[1]}</p></div>`).join('');
   const w = R.meta.worked;
-  chart('worked', { type: 'bar', data: { labels: ['Average bowler, same balls (econ)', 'Bumrah on them (econ)', 'Value per 100 balls', 'After sample adjustment'], datasets: [{ data: [w.avg, w.econ, w.raw, w.final], backgroundColor: [css('--ink-3'), css('--pink'), css('--gold') + '99', css('--gold')], borderRadius: 6, barPercentage: .6 }] },
+  chart('worked', { type: 'bar', data: { labels: ['Average bowler, same balls (econ)', `${w.name.split(' ')[0]} on them (econ)`, 'Value per 100 balls, unweighted', 'After year weights + adjustment'], datasets: [{ data: [w.avg, w.econ, w.raw, w.final], backgroundColor: [css('--ink-3'), css('--pink'), css('--gold') + '99', css('--gold')], borderRadius: 6, barPercentage: .6 }] },
     options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { ...tip(), callbacks: { label: c => ' ' + c.raw } } }, scales: { x: { beginAtZero: true, grid: grid() }, y: { grid: { display: false }, ticks: { color: css('--ink') } } } } });
   $('#gloss').innerHTML = [
     ['Pressure ball', 'One of the tightest fifth of balls in an innings, where the result can swing most.'],
     ['Rating', 'Runs added (batters) or saved (bowlers) per 100 pressure balls against an average player on the same balls, after small-sample adjustment.'],
-    ['Tier', 'STRONG = top 10 in 60%+ of 100 re-runs, CONTENDER 30–59%, FRINGE under 30%.'],
-    ['Rank stability', 'Share of the 100 reshuffled re-runs where the player stayed top 10.'],
+    ['Tier', 'STRONG = top 10 in 60%+ of 180 re-runs, CONTENDER 30–59%, FRINGE under 30%.'],
+    ['Rank stability', 'Share of the 180 re-runs (each a resample of whole matches) where the player stayed top 10.'],
     ['Holds up under X of 14', 'How many of 14 alternative pressure definitions still put him in the top 10.'],
     ['vs league', 'His raw pressure number minus everyone else\'s on pressure balls in the same filter.'],
     ['vs own normal', 'His pressure number minus his own number on other balls. Can flatter players with a low normal.'],

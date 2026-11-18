@@ -391,3 +391,4 @@ body[data-view="rr"] .fg-role{display:none}
   td,th{padding:10px 6px}
   .rrchart .chart-wrap{min-height:340px}
 }
+.kn .gain.dn{color:var(--bad)}

@@ -78,11 +78,11 @@
   <section class="view" role="tabpanel" id="v-rank">
     <div class="howto">
       <div class="card"><h3>Read it as tiers, not places</h3><p id="ht1"></p></div>
-      <div class="card"><h3>A record, not a forecast</h3><p>Pressure ratings barely repeat from 2022–24 to 2025–26 (batting −0.09, bowling 0.06). Use them as evidence of what a player has done when it counted, next to scouting, not as a prediction.</p></div>
-      <div class="card"><h3>Weigh the sample</h3><p>Every rating sits on 200+ pressure balls with 50+ in the IPL. Players with mostly T20I balls faced more uneven opposition, so they are flagged.</p></div>
+      <div class="card"><h3>A record, not a forecast</h3><p>Pressure ratings barely repeat from 2022–24 to 2025–26 (batting −0.11, bowling 0.06). Use them as evidence of what a player has done when it counted, next to scouting, not as a prediction.</p></div>
+      <div class="card"><h3>Weigh the sample</h3><p>Batters need 100+ pressure balls and bowlers 120+, with 50+ in the IPL. Under 200 is tagged “small sample”. Recent seasons count more: 2026 in full, about 30% less per year back.</p></div>
     </div>
     <div class="card">
-      <div class="card-head"><h3>Locks, contenders, fragile <span class="scope rep">Report</span></h3><span class="muted">Grouped by how often each stayed top 10 in 100 reshuffled re-runs</span></div>
+      <div class="card-head"><h3>Locks, contenders, fragile <span class="scope rep">Report</span></h3><span class="muted">Grouped by how often each stayed top 10 in 180 re-runs on resampled matches</span></div>
       <div class="groups" id="groups"></div>
     </div>
     <div class="row2">
@@ -208,17 +208,17 @@
     <div class="steps" id="steps"></div>
     <div class="row2">
       <div class="card">
-        <div class="card-head"><h3>Worked example: Bumrah's +16.3</h3></div>
+        <div class="card-head"><h3>Worked example: Rashid Khan's +15.3</h3></div>
         <div class="chart-wrap md"><canvas id="worked" aria-label="Worked example"></canvas></div>
-        <p class="muted small">482 pressure balls at 7.52 an over, where an average bowler concedes 9.76 on the same balls. Runs plus wicket value comes to +22.7 per 100 balls, shrunk to +16.3 for sample size.</p>
+        <p class="muted small">780 pressure balls at 7.43 an over, where an average bowler concedes 8.31 on the same balls. Runs plus wicket value comes to +30.4 per 100 balls before weighting; recent-season weights and the small-sample adjustment bring it to +15.3.</p>
       </div>
       <div class="card prose">
         <h3>What counts as pressure</h3>
-        <p>Every ball gets a win probability before and after it. A <b>pressure ball</b> is one of the tightest fifth in its innings, where the result can swing most. Two extras passed a test set in advance: knockout balls for batters and balls straight after a 30-run, three-over burst for bowlers, counted only when they also sit in the tighter half of the innings.</p>
+        <p>Every ball gets a win probability before and after it. A <b>pressure ball</b> is one of the fifth of balls where the result could swing most, with first and second innings ranked separately. Two extras passed a test set in advance: knockout balls for batters and balls straight after a 30-run, three-over burst for bowlers, counted only when they also sit in the tighter half of the innings.</p>
         <h3>Is it real?</h3>
         <p>On pressure balls a wicket falls 6.1% of the time against 5.4% on the rest. The benchmark never sees the player's name and was tested only on matches it wasn't trained on.</p>
         <h3>Limits</h3>
-        <p>A record, not a forecast. Qualifying needs 200 pressure balls with 50 in the IPL: 52 batters and 66 bowlers. Price, fitness and XI fit are out of scope.</p>
+        <p>A record, not a forecast. Qualifying needs 100 pressure balls (batters) or 120 (bowlers), 50 of them in the IPL: 84 batters and 94 bowlers qualify. Price, fitness and XI fit are out of scope.</p>
       </div>
     </div>
     <div class="card">
