@@ -211,6 +211,7 @@ function renderView() {
   Chart.defaults.color = css('--ink-3'); Chart.defaults.borderColor = css('--line');
   Chart.defaults.font.family = 'Onest, system-ui, sans-serif'; Chart.defaults.font.size = 12;
   ({ rr: renderRR, overview: renderOverview, rank: renderRank, explore: renderExplore, compare: renderCompare, auction: renderAuction, method: renderMethod })[S.view]();
+  document.dispatchEvent(new CustomEvent('rr:render', { detail: { view: S.view } }));
 }
 function bindRows(sel, role) {
   $$(sel + ' tbody tr[data-id]').forEach(tr => { if (!tr.dataset.id) return; tr.tabIndex = 0; tr.onclick = () => openPlayer(role, +tr.dataset.id); tr.onkeydown = e => { if (e.key === 'Enter') openPlayer(role, +tr.dataset.id); }; });

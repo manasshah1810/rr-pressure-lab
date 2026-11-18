@@ -612,3 +612,74 @@ tbody tr:last-child td{border-bottom:0}
   .brand{font-size:17px;min-width:0}
   .brand small{display:none}
 }
+/* ================= MOTION LAYER ================= */
+:root{--spring:cubic-bezier(.34,1.56,.64,1);--out:cubic-bezier(.2,.8,.2,1)}
+/* intro: header + filter bar drop in, logo pops */
+.motion.mo-intro .top{animation:dropIn .7s var(--out) both}
+.motion.mo-intro #filters,.motion.mo-intro .fnote{animation:dropIn .7s .12s var(--out) both}
+.motion.mo-intro .brand svg{animation:logoPop .9s .1s var(--spring) both}
+@keyframes dropIn{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes logoPop{0%{transform:scale(.3) rotate(-120deg);opacity:0}100%{transform:none;opacity:1}}
+/* view switch */
+.motion .view.on{animation:none}
+.motion .view.enter{animation:viewIn .5s var(--out)}
+@keyframes viewIn{from{opacity:0}to{opacity:1}}
+/* scroll reveal */
+.motion .rv{opacity:0;transform:translateY(22px) scale(.985);transition:opacity .7s var(--out),transform .8s var(--out),box-shadow .3s,border-color .3s}
+.motion .rv.in{opacity:1;transform:none}
+.motion .tile.rv{transform:translateY(12px)}
+/* hover lift + pointer glow */
+.motion .gap,.motion .howto .card,.motion .step,.motion .wi,.motion .kn,.motion .tile{transition:transform .35s var(--out),box-shadow .35s var(--out),border-color .25s,background .25s,opacity .7s var(--out)}
+.motion .gap:hover,.motion .howto .card:hover,.motion .step:hover{transform:translateY(-4px);box-shadow:0 18px 40px -22px rgba(0,0,0,.55)}
+.motion .gap,.motion .howto .card,.motion .step{background-image:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),color-mix(in srgb,var(--pink) 9%,transparent),transparent 60%)}
+.motion .wi:hover{transform:translateY(-3px)}
+.motion .tile:hover{transform:translateY(-2px)}
+.motion .kn:hover{background:var(--card-2);border-radius:12px}
+/* press feedback everywhere */
+.motion button{transition:transform .18s var(--out),background .2s,color .2s,border-color .2s,box-shadow .2s}
+.motion button:active{transform:scale(.96)}
+.motion .tabs button:active{transform:none}
+/* sliding tab indicator (desktop/tablet) */
+@media (min-width:701px){.tabs{position:relative}}
+.tab-ind{position:absolute;left:0;bottom:-1px;height:2px;border-radius:2px;background:var(--pink);transition:transform .5s var(--spring),width .5s var(--spring),opacity .2s;pointer-events:none;box-shadow:0 0 12px var(--pink)}
+@media (min-width:701px){.motion .tabs button.on::after{display:none}}
+@media (max-width:700px){.tab-ind{display:none}}
+/* pink panel: slow living gradient */
+.motion .panel{background-size:180% 180%,100% 100%;animation:drift 16s ease-in-out infinite alternate}
+@keyframes drift{0%{background-position:100% 0%,0 0}100%{background-position:40% 60%,0 0}}
+.motion .rr-hero{background-size:160% 160%,100% 100%;animation:drift 20s ease-in-out infinite alternate}
+/* table rows ripple */
+.motion tr.row-in{animation:rowIn .5s var(--out) both}
+@keyframes rowIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+/* star pop */
+.star.pop,#p-star.pop{animation:pop .55s var(--spring)}
+@keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.55) rotate(-12deg)}100%{transform:scale(1)}}
+.star.on{text-shadow:0 0 10px color-mix(in srgb,var(--pink) 60%,transparent)}
+/* toast + drawer springs */
+.toast{transition:opacity .25s,transform .45s var(--spring)}
+.drawer{transition:transform .45s var(--spring)}
+.sl{animation:rowIn .4s var(--out) both}
+/* filters open: groups cascade */
+.motion .filters.open .fg{animation:dropIn .45s var(--out) both}
+.motion .filters.open .fg:nth-of-type(2){animation-delay:.04s}.motion .filters.open .fg:nth-of-type(3){animation-delay:.08s}
+.motion .filters.open .fg:nth-of-type(4){animation-delay:.12s}.motion .filters.open .fg:nth-of-type(5){animation-delay:.16s}.motion .filters.open .fg:nth-of-type(6){animation-delay:.2s}
+/* search suggestions */
+.sugg.on{animation:dropIn .25s var(--out)}
+/* phone menu items cascade */
+@media (max-width:700px){
+  .motion .tabs.menu button{animation:slideL .45s var(--out) both}
+  .motion .tabs.menu button:nth-of-type(2){animation-delay:.04s}.motion .tabs.menu button:nth-of-type(3){animation-delay:.08s}
+  .motion .tabs.menu button:nth-of-type(4){animation-delay:.12s}.motion .tabs.menu button:nth-of-type(5){animation-delay:.16s}
+  .motion .tabs.menu button:nth-of-type(6){animation-delay:.2s}.motion .tabs.menu button:nth-of-type(7){animation-delay:.24s}
+  .tabs{transition:transform .45s var(--spring),visibility 0s .45s}
+  .tabs.menu{transition:transform .45s var(--spring),visibility 0s}
+}
+@keyframes slideL{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+/* live pulse on the "Filtered" dot */
+.motion .scope.live::before{display:inline-block;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+/* weak gap card breathes red edge */
+.motion .gap.weak{animation:warn 3.2s ease-in-out infinite}
+@keyframes warn{0%,100%{box-shadow:inset 3px 0 0 var(--bad)}50%{box-shadow:inset 3px 0 0 var(--bad),0 0 0 1px color-mix(in srgb,var(--bad) 35%,transparent),0 0 28px -6px color-mix(in srgb,var(--bad) 45%,transparent)}}
+/* skeleton shimmer for empty chart overlays */
+.empty{animation:viewIn .4s var(--out)}
