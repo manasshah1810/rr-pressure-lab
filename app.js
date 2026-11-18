@@ -15,7 +15,7 @@ const S = {
   sel: { bat: R.players.find(p => p.type === 'bat').id, bowl: R.players.find(p => p.type === 'bowl').id },
   metric: 0, sort: { k: 'vsl', asc: false }, cmp: { bat: [], bowl: [] }, from: null, sl: []
 };
-try { S.sl = JSON.parse(localStorage.getItem('rr-sl') || '[]'); } catch (e) {}
+try { S.sl = JSON.parse(localStorage.getItem('rr-sl') || '[]'); S.rrMode = localStorage.getItem('rr-sqmode') || 'chart'; } catch (e) {}
 
 /* ---------- helpers ---------- */
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -247,7 +247,7 @@ function renderRR() {
   const L = main.f(league(role).hp), RECs = aggregate(role, { years: RECENT });
   const shrink = p => better(role, main.f(p.hp), L) * p.hp.b / (p.hp.b + 150);
   const list = squad.map(id => AG[id]).filter(p => p && p.hp.b >= 15).map(p => ({ id: p.id, n: PL[p.id].n, v: main.f(p.hp), b: p.hp.b, nv: main.f(p.n), adj: shrink(p), rec: RECs[p.id] && RECs[p.id].hp.b >= 20 ? main.f(RECs[p.id].hp) : null })).sort((x, y) => y.adj - x.adj);
-  $('#rrsq-h').textContent = `RR ${roleWord(role)}: edge on pressure balls, sample-adjusted`;
+  $('#rrsq-h').textContent = (S.rrMode || 'chart') === 'chart' ? `RR ${roleWord(role)}: edge on pressure balls, sample-adjusted` : `RR ${roleWord(role)} on pressure balls: raw numbers and recent form`;
   empty('rrbar', list.length ? '' : 'No RR squad players with 15+ pressure balls in this filter. Widen seasons or phases.');
   if (list.length) chart('rrbar', {
     type: 'bar', data: { labels: list.map(p => shortN(p.n)), datasets: [{ data: list.map(p => +p.adj.toFixed(2)), backgroundColor: list.map(p => p.adj >= 0 ? css('--pink') : css('--blue-2')), borderRadius: 6, barPercentage: .7 }] },
@@ -259,6 +259,9 @@ function renderRR() {
   $('#rrtbl thead').innerHTML = `<tr><th>Player</th><th class="n">Pressure ${role === 'bat' ? 'SR' : 'econ'}</th><th class="n">Raw vs league</th><th class="n">Other balls</th><th class="n">2025–26</th><th>Report</th></tr>`;
   $('#rrtbl tbody').innerHTML = list.map(p => { const rp = repBy[role + p.id], d = better(role, p.v, L); return `<tr data-id="${p.id}" class="${p.b < 100 ? 'thin' : ''}"><td><b>${p.n}</b> ${starBtn(role, p.id)}<br><span class="muted">${p.b} pressure balls${p.b < 100 ? ' · thin sample' : ''}</span></td><td class="n">${fmt(p.v, main.d)}</td><td class="n ${d >= 0 ? 'up' : 'dn'}">${sgn(d, main.d)}</td><td class="n">${fmt(p.nv, main.d)}</td><td class="n">${fmt(p.rec, main.d)}</td><td>${rp ? `<span class="tag ${rp.tier}">#${rp.rank}</span>` : '<span class="muted">—</span>'}</td></tr>`; }).join('');
   bindRows('#rrtbl', role);
+  const card = $('.rrchart'); card.dataset.mode = S.rrMode || 'chart';
+  $$('#rrsq-mode button').forEach(b => { const on = b.dataset.v === card.dataset.mode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+    b.onclick = () => { S.rrMode = b.dataset.v; try { localStorage.setItem('rr-sqmode', S.rrMode); } catch (e) {} renderRR(); }; });
   renderRRMatchups(role, squad);
 }
 

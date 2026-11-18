@@ -575,3 +575,7 @@ tbody tr:last-child td{border-bottom:0}
   #ftoggle-s i{margin:0 4px}
   .rr-hero h2{max-width:none}
 }
+
+/* RR squad chart/table toggle */
+.rrchart[data-mode="chart"] .only-table,.rrchart[data-mode="table"] .only-chart{display:none}
+.rrchart .card-head .seg{margin:4px 0 2px}

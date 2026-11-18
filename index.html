@@ -63,13 +63,13 @@
       <p class="muted small" id="rr-legend"></p>
     </div>
     <div class="row2">
-      <div class="card rrchart">
-        <div class="card-head"><h3 id="rrsq-h">RR squad on pressure balls</h3><span class="muted">Pink = ahead of the league on pressure balls, blue = behind. Small samples are pulled toward zero. Click a bar.</span></div>
-        <div class="chart-wrap rk"><canvas id="rrbar" aria-label="RR squad pressure chart"></canvas><div class="empty" id="rrbar-e" hidden></div></div>
-      </div>
-      <div class="card">
-        <div class="card-head"><h3>Squad table</h3><span class="muted" id="rrtbl-s"></span></div>
-        <div class="tbl-wrap"><table id="rrtbl"><thead></thead><tbody></tbody></table></div>
+      <div class="card rrchart" data-mode="chart">
+        <div class="card-head"><h3 id="rrsq-h">RR squad on pressure balls</h3>
+          <div class="seg" id="rrsq-mode" role="group" aria-label="Show as"><button data-v="chart" class="on" aria-pressed="true">Chart</button><button data-v="table" aria-pressed="false">Table</button></div>
+          <span class="muted only-chart">Pink = ahead of the league on pressure balls, blue = behind. Small samples are pulled toward zero. Click a bar.</span>
+          <span class="muted only-table" id="rrtbl-s"></span></div>
+        <div class="chart-wrap rk only-chart"><canvas id="rrbar" aria-label="RR squad pressure chart"></canvas><div class="empty" id="rrbar-e" hidden></div></div>
+        <div class="tbl-wrap only-table"><table id="rrtbl"><thead></thead><tbody></tbody></table></div>
       </div>
     </div>
     <div class="card">
