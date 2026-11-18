@@ -200,7 +200,7 @@ function setView(v) { S.from = null; S.view = v; sync(true); applyView(); }
 function applyView() {
   $$('#tabs button[data-view]').forEach(b => { const on = b.dataset.view === S.view; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   $$('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + S.view));
-  const f = FILTER_VIEWS.has(S.view);
+  const f = FILTER_VIEWS.has(S.view); document.body.dataset.view = S.view;
   $('#filters').classList.toggle('off', !f); $('#fnote').classList.toggle('on', !f);
   $('#fnote').innerHTML = !f ? `Showing <b>${roleWord(S.role)}</b> from the fixed report, so filters are hidden here. <button class="btn" id="fn-sw" style="margin-left:8px;padding:4px 10px">Switch to ${S.role === 'bat' ? 'bowlers' : 'batters'}</button>` : '';
   if (!f) $('#fn-sw').onclick = () => { S.role = S.role === 'bat' ? 'bowl' : 'bat'; paintFilters(); sync(false); applyView(); };
@@ -229,8 +229,8 @@ function renderRR() {
     const tol = role === 'bat' ? 3 : 0.25;
     const st = sq.b < 30 ? 'few' : d < -tol ? 'weak' : d > tol ? 'ok' : 'eq';
     const pa = aggregate(role, { phases: P });
-    const cands = Object.values(pa).filter(p => !squad.includes(p.id) && p.hp.b >= 40 && p.ipl / p.all.b >= .5 && better(role, main.f(p.hp), lv) > 0 && (poolBy[role + p.id] || !/2026/.test(PL[p.id].ipl)))
-      .map(p => ({ id: p.id, v: main.f(p.hp), b: p.hp.b })).sort((x, y) => better(role, y.v, x.v)).slice(0, 4);
+    const cands = Object.values(pa).filter(p => !squad.includes(p.id) && p.hp.b >= 60 && p.ipl / p.all.b >= .5 && better(role, main.f(p.hp), lv) > 0 && (poolBy[role + p.id] || !/2026/.test(PL[p.id].ipl)))
+      .map(p => ({ id: p.id, v: main.f(p.hp), b: p.hp.b, adj: better(role, main.f(p.hp), lv) * p.hp.b / (p.hp.b + 150) })).sort((x, y) => y.adj - x.adj).slice(0, 4);
     return { ph, sq, sv, lv, d, st, cands };
   });
   const weak = cards.filter(c => c.st === 'weak').sort((x, y) => x.d - y.d);
@@ -240,8 +240,8 @@ function renderRR() {
       ${c.st === 'few' ? `<b>—</b><p>Only ${c.sq.b} squad pressure balls. Too few to judge.</p>` : `<b>${fmt(c.sv, main.d)}</b><span class="d ${c.st === 'weak' ? 'dn' : c.st === 'ok' ? 'up' : 'eq'}">${c.st === 'eq' ? 'Level with' : sgn(c.d, main.d) + ' vs'} league ${fmt(c.lv, main.d)}</span>
       <p>${c.sq.b} squad pressure balls · ${c.st === 'weak' ? 'gap to fill' : c.st === 'ok' ? 'a strength' : 'no edge either way'}</p>`}
       <p class="sub">Better here, outside RR's squad</p>
-      <div class="fill-list">${c.cands.map(x => { const rp = repBy[role + x.id], pl = poolBy[role + x.id]; return `<button data-open="${x.id}" class="${x.b < 60 ? 'thin' : ''}">${PL[x.id].n}${pl ? ' <span class="tag CONTENDER">pool</span>' : ''}${rp ? ` <span class="tag ${rp.tier}">#${rp.rank}</span>` : ''}<span>${fmt(x.v, main.d)} · ${x.b} balls</span></button>`; }).join('') || '<span class="muted">Nobody clearly better with 40+ IPL-heavy balls.</span>'}</div></div>`).join('');
-  $('#rr-legend').innerHTML = `Red = squad behind the league by more than ${role === 'bat' ? '3 strike-rate points' : '0.25 an over'}; green = ahead by more. Suggestions need 40+ pressure balls in that phase, mostly in the IPL; faded names have under 60. <span class="tag CONTENDER">pool</span> = report's 2027 auction pool, <span class="tag STRONG">#n</span> = report rank.`;
+      <div class="fill-list">${c.cands.map(x => { const rp = repBy[role + x.id], pl = poolBy[role + x.id]; return `<button data-open="${x.id}" class="${x.b < 100 ? 'thin' : ''}">${PL[x.id].n}${pl ? ' <span class="tag CONTENDER">pool</span>' : ''}${rp ? ` <span class="tag ${rp.tier}">#${rp.rank}</span>` : ''}<span>${fmt(x.v, main.d)} · ${x.b} balls</span></button>`; }).join('') || '<span class="muted">No clear alternative with 60+ IPL-heavy pressure balls.</span>'}</div></div>`).join('');
+  $('#rr-legend').innerHTML = `Red = squad behind the league by more than ${role === 'bat' ? '3 strike-rate points' : '0.25 an over'}; green = ahead by more. Suggestions need 60+ pressure balls in that phase, mostly IPL, ranked by sample-adjusted edge; faded = under 100. <span class="tag CONTENDER">pool</span> = report's 2027 auction pool, <span class="tag STRONG">#n</span> = report rank.`;
   $$('#gaps [data-open]').forEach(b => b.onclick = () => openPlayer(role, +b.dataset.open));
   const L = main.f(league(role).hp), RECs = aggregate(role, { years: RECENT });
   const shrink = p => better(role, main.f(p.hp), L) * p.hp.b / (p.hp.b + 150);
@@ -255,8 +255,8 @@ function renderRR() {
       scales: { x: { grid: grid(), title: { display: true, text: `${word} edge vs league, shrunk for small samples` } }, y: { grid: { display: false }, ticks: { color: css('--ink'), padding: 6 } } } }
   });
   $('#rrtbl-s').textContent = `${list.length} players · league ${fmt(L, main.d)} · faded = under 100 pressure balls`;
-  $('#rrtbl thead').innerHTML = `<tr><th>Player</th><th class="n">Pressure</th><th class="n">vs league</th><th class="n">Other balls</th><th class="n">2025–26</th><th>Report</th><th></th></tr>`;
-  $('#rrtbl tbody').innerHTML = list.map(p => { const rp = repBy[role + p.id], d = better(role, p.v, L); return `<tr data-id="${p.id}" class="${p.b < 100 ? 'thin' : ''}"><td><b>${p.n}</b><br><span class="muted">${p.b} pressure balls</span></td><td class="n">${fmt(p.v, main.d)}</td><td class="n ${d >= 0 ? 'up' : 'dn'}">${sgn(d, main.d)}</td><td class="n">${fmt(p.nv, main.d)}</td><td class="n">${fmt(p.rec, main.d)}</td><td>${rp ? `<span class="tag ${rp.tier}">#${rp.rank}</span>` : '<span class="muted">—</span>'}</td><td>${starBtn(role, p.id)}</td></tr>`; }).join('');
+  $('#rrtbl thead').innerHTML = `<tr><th>Player</th><th class="n">Pressure ${role === 'bat' ? 'SR' : 'econ'}</th><th class="n">Raw vs league</th><th class="n">Other balls</th><th class="n">2025–26</th><th>Report</th></tr>`;
+  $('#rrtbl tbody').innerHTML = list.map(p => { const rp = repBy[role + p.id], d = better(role, p.v, L); return `<tr data-id="${p.id}" class="${p.b < 100 ? 'thin' : ''}"><td><b>${p.n}</b> ${starBtn(role, p.id)}<br><span class="muted">${p.b} pressure balls${p.b < 100 ? ' · thin sample' : ''}</span></td><td class="n">${fmt(p.v, main.d)}</td><td class="n ${d >= 0 ? 'up' : 'dn'}">${sgn(d, main.d)}</td><td class="n">${fmt(p.nv, main.d)}</td><td class="n">${fmt(p.rec, main.d)}</td><td>${rp ? `<span class="tag ${rp.tier}">#${rp.rank}</span>` : '<span class="muted">—</span>'}</td></tr>`; }).join('');
   bindRows('#rrtbl', role);
 }
 
@@ -290,11 +290,11 @@ function renderOverview() {
     $('#k-hint').textContent = agg.hp.b < 30 ? `Only ${agg.hp.b} pressure balls in this filter, so treat these numbers as noise.` : 'Outside the report top 10, so this view uses the raw ball-by-ball splits under your filters.';
   }
   const st = rep ? rep.stats : {};
-  const t = (l, v, s, flag) => { if (!flag) return `<div class="tile"><p>${l}</p><b>${v}</b><small>${s}</small></div>`; const base = rep ? rep.pAvg : lv, val = rep ? rep.pP : hp, dd = better(role, val, base); return `<div class="tile flag"><div><p>${l}</p><b>${v}</b><small>${s}</small></div><span class="delta ${dd >= 0 ? 'up' : 'dn'}">${sgn(dd, role === 'bat' ? 0 : 2)}</span></div>`; };
+  const t = (l, v, s, flag) => { if (!flag) return `<div class="tile"><p>${l}</p><b>${v}</b><small>${s}</small></div>`; const base = rep ? rep.pAvg : lv, val = rep ? rep.pP : hp, dd = better(role, val, base); return `<div class="tile flag"><div><p>${l}</p><b>${v}</b><small>${s}</small></div><span class="delta pillish ${dd >= 0 ? 'up' : 'dn'}">${sgn(dd, role === 'bat' ? 0 : 2)}</span></div>`; };
   $('#tiles').innerHTML = (role === 'bat' ? [
     t('Pressure strike rate', rep ? rep.pP : fmt(hp), rep ? `average batter, same balls: ${rep.pAvg}` : `league on pressure balls: ${fmt(lv)}`, 1),
-    t('Holds up under', rep ? `${rep.defs} of 14` : '—', 'other pressure definitions'),
-    t(rep ? 'Career strike rate' : 'Normal strike rate', rep ? st['Strike rate'] : fmt(nm), rep ? `${st['Runs']} runs · avg ${st['Average']}` : `${agg.n.b} other balls`),
+    t('Holds up under', rep ? `${rep.defs} of 14` : '—', 'other definitions'),
+    t(rep ? 'Career strike rate' : 'Normal strike rate', rep ? st['Strike rate'] : fmt(nm), rep ? `${st['Runs']} runs` : `${agg.n.b} other balls`),
     t('IPL share of balls', Math.round(isl) + '%', isl < 50 ? 'mostly T20I, weigh with care' : 'in this filter'),
   ] : [
     t('Pressure economy', rep ? rep.pP.toFixed(2) : fmt(hp, 2), rep ? `average bowler, same balls: ${rep.pAvg.toFixed(2)}` : `league on pressure balls: ${fmt(lv, 2)}`, 1),
@@ -319,7 +319,7 @@ function renderOverview() {
     options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
       plugins: { legend: { position: 'bottom', align: 'end', labels: { color: '#fff', boxWidth: 8, boxHeight: 8, usePointStyle: true } },
         tooltip: { ...tip(), displayColors: true, callbacks: { afterBody: c => { const a = per[c[0].dataIndex]; return `${a.hp.b} pressure · ${a.n.b} other balls`; } } } },
-      scales: { x: { grid: { color: W + '.1)' }, ticks: { color: W + '.85)' }, border: { display: false } }, y: { grid: { color: W + '.1)' }, ticks: { color: W + '.8)' }, border: { display: false } } } }
+      scales: { x: { grid: { color: W + '.1)' }, ticks: { color: W + '.85)' }, border: { display: false } }, y: { grid: { color: W + '.07)' }, ticks: { color: W + '.85)' }, border: { display: false } } } }
   });
 
   const top = R.players.filter(p => p.type === role);

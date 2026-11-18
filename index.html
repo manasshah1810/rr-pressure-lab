@@ -41,7 +41,7 @@
 
   <section class="filters card" id="filters" aria-label="Filters">
     <button class="ftoggle" id="ftoggle" aria-expanded="false"><span>Filters</span><span class="muted" id="ftoggle-s"></span></button>
-    <div class="fg"><span class="kicker">Role</span><div class="seg" id="f-role"><button data-v="bat" class="on" aria-pressed="true">Batting</button><button data-v="bowl" aria-pressed="false">Bowling</button></div></div>
+    <div class="fg fg-role"><span class="kicker">Role</span><div class="seg" id="f-role"><button data-v="bat" class="on" aria-pressed="true">Batting</button><button data-v="bowl" aria-pressed="false">Bowling</button></div></div>
     <div class="fg"><span class="kicker">Comp</span><div class="seg" id="f-cls"><button data-v="all" class="on">IPL + T20I</button><button data-v="IPL">IPL</button><button data-v="T20I">T20I</button></div></div>
     <div class="fg"><span class="kicker">Season</span><div class="chips" id="f-year"></div></div>
     <div class="fg"><span class="kicker">Phase</span><div class="chips" id="f-phase"></div></div>
@@ -63,7 +63,7 @@
       <p class="muted small" id="rr-legend"></p>
     </div>
     <div class="row2">
-      <div class="card">
+      <div class="card rrchart">
         <div class="card-head"><h3 id="rrsq-h">RR squad on pressure balls</h3><span class="muted">Pink = ahead of the league on pressure balls, blue = behind. Small samples are pulled toward zero. Click a bar.</span></div>
         <div class="chart-wrap rk"><canvas id="rrbar" aria-label="RR squad pressure chart"></canvas><div class="empty" id="rrbar-e" hidden></div></div>
       </div>
