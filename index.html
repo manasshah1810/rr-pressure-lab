@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Royals Pressure Lab</title>
+<meta name="description" content="Who performs when it matters: pressure ratings for IPL and T20I players, 2022 to 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>try{var t=localStorage.getItem('rr-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body>
+<div class="frame">
+  <header class="top">
+    <a class="brand" href="#">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 12 3l8 17-8-4z" fill="var(--pink)"/><path d="M12 3v13l-8 4z" fill="var(--gold)"/></svg>
+      <span>Pressure Lab</span>
+    </a>
+    <nav class="tabs" id="tabs">
+      <button data-view="overview" class="on">Player</button>
+      <button data-view="rank">Rankings</button>
+      <button data-view="explore">Explorer</button>
+      <button data-view="compare">Head to head</button>
+      <button data-view="auction">Auction pool</button>
+      <button data-view="method">Method</button>
+    </nav>
+    <div class="top-r">
+      <label class="search"><svg width="16" height="16" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-4-4" stroke="currentColor" stroke-width="2"/></svg>
+        <input id="q" list="plist" placeholder="Find any player" autocomplete="off"><datalist id="plist"></datalist></label>
+      <button class="icon" id="theme" title="Switch light / dark" aria-label="Switch theme">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z" fill="currentColor"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="filters card">
+    <div class="seg" id="f-role"><button data-v="bat" class="on">Batting</button><button data-v="bowl">Bowling</button></div>
+    <div class="seg" id="f-cls"><button data-v="all" class="on">All T20</button><button data-v="IPL">IPL</button><button data-v="T20I">T20I</button></div>
+    <div class="chips" id="f-year"></div>
+    <div class="chips" id="f-phase"></div>
+    <label class="slider">Min balls <b id="minv">300</b><input type="range" id="f-min" min="50" max="1200" step="25" value="300"></label>
+    <button class="ghost" id="reset">Reset</button>
+  </section>
+
+  <main>
+  <!-- PLAYER -->
+  <section class="view on" id="v-overview">
+    <div class="card hero">
+      <div class="hero-head">
+        <div>
+          <p class="eyebrow" id="p-team">—</p>
+          <h1 id="p-name">—</h1>
+        </div>
+        <div class="clutch" title="Share of 100 reshuffled re-runs where he stays top 10"><span class="bars" id="clutchbars"></span><b id="clutchnum">—</b><span>Re-run score</span></div>
+      </div>
+      <div class="hero-grid">
+        <div class="left">
+          <p class="lbl" id="k-main-l">Pressure rating</p>
+          <div class="big"><span id="k-main">—</span><span class="pill" id="k-delta">—</span></div>
+          <p class="hint" id="k-hint"></p>
+          <div class="tiles" id="tiles"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><p class="lbl inv">Season by season</p><p class="sub inv" id="trend-sub">Pressure balls vs the rest</p></div>
+            <div class="mini-seg" id="trend-metric"></div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="trend"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card watch">
+      <span class="watch-l">Report<br>top 10</span>
+      <div class="watch-list" id="watch"></div>
+    </div>
+
+    <div class="row3">
+      <div class="card">
+        <div class="card-head"><h3>Where his pressure balls come</h3><span class="muted" id="phase-sub"></span></div>
+        <div class="phasebars" id="phasebars"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>How secure is the rank</h3></div>
+        <div class="gauge"><canvas id="gauge"></canvas><div class="gauge-c"><b id="g-num">—</b><span id="g-sub"></span></div></div>
+      </div>
+      <div class="card notes">
+        <div class="card-head"><h3 id="notes-h">Scouting notes</h3></div>
+        <div id="notes"></div>
+      </div>
+    </div>
+
+    <div class="card" id="knocks-card">
+      <div class="card-head"><h3 id="knocks-h">Pressure knocks</h3><span class="muted">"Gain" = runs above an average player on those pressure balls</span></div>
+      <div class="knocks" id="knocks"></div>
+    </div>
+  </section>
+
+  <!-- RANKINGS -->
+  <section class="view" id="v-rank">
+    <div class="takeaways" id="takeaways"></div>
+    <div class="row2">
+      <div class="card">
+        <div class="card-head"><h3 id="rk-h">Top 10 by rating</h3><span class="muted">Runs added per 100 pressure balls, after small-sample adjustment</span></div>
+        <div class="chart-wrap rk"><canvas id="rkbar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>How far could each rank move?</h3><span class="muted">Likely rank range across 100 re-runs · dot = report rank</span></div>
+        <div class="chart-wrap rk"><canvas id="rkrange"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Robustness</h3><span class="muted">Click a row to open the player</span></div>
+      <div class="tbl-wrap"><table id="rktbl"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- EXPLORER -->
+  <section class="view" id="v-explore">
+    <div class="row2">
+      <div class="card">
+        <div class="card-head"><h3>Normal vs pressure</h3><span class="muted" id="sc-sub"></span></div>
+        <div class="chart-wrap sq"><canvas id="scatter"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Biggest lift under pressure</h3><span class="muted" id="lift-sub"></span></div>
+        <div class="chart-wrap sq"><canvas id="liftbar"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Every qualifying player</h3><span class="muted" id="tbl-count"></span></div>
+      <div class="tbl-wrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- COMPARE -->
+  <section class="view" id="v-compare">
+    <div class="card cmp-pick">
+      <select id="ca" aria-label="Player A"></select><span class="vs">vs</span><select id="cb" aria-label="Player B"></select>
+    </div>
+    <div class="row2">
+      <div class="card"><div class="card-head"><h3>Profile</h3><span class="muted">Percentile within the current filter</span></div><div class="chart-wrap sq"><canvas id="radar"></canvas></div></div>
+      <div class="card"><div class="card-head"><h3 id="cmpbar-h">By phase, pressure balls only</h3></div><div class="chart-wrap sq"><canvas id="cmpbar"></canvas></div></div>
+    </div>
+    <div class="card"><div class="cmp-table" id="cmptbl"></div></div>
+  </section>
+
+  <!-- AUCTION -->
+  <section class="view" id="v-auction">
+    <div class="card">
+      <div class="card-head"><h3 id="au-h">Best under pressure in the 2027 auction pool</h3><span class="muted">Qualified players on no 2027 retained list who played in 2025 or 2026</span></div>
+      <div class="chart-wrap rk"><canvas id="aubar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="tbl-wrap"><table id="autbl"><thead></thead><tbody></tbody></table></div>
+      <p class="muted small">Pink rows played for RR last. "Auction pool" means not on any supplied 2027 retained list; registration is not known.</p>
+    </div>
+  </section>
+
+  <!-- METHOD -->
+  <section class="view" id="v-method">
+    <div class="steps" id="steps"></div>
+    <div class="row2">
+      <div class="card">
+        <div class="card-head"><h3>Worked example: Bumrah's +16.3</h3></div>
+        <div class="chart-wrap sq"><canvas id="worked"></canvas></div>
+      </div>
+      <div class="card prose">
+        <h3>What counts as pressure</h3>
+        <p>Every ball gets a win probability before and after it. A <b>pressure ball</b> is one of the tightest fifth in its innings, where the result can swing most. Two extras passed a test set in advance: knockout balls for batters and balls straight after a 30-run, three-over burst for bowlers, counted only when they also sit in the tighter half of the innings.</p>
+        <h3>Is it real?</h3>
+        <p>On pressure balls a wicket falls <b id="m-wp">6.1%</b> of the time against <b id="m-wn">5.4%</b> on the rest. The benchmark never sees the player's name and was tested only on matches it wasn't trained on.</p>
+        <h3>Limits</h3>
+        <p>This is a record, not a forecast. Batting ratings repeated weakly from 2022–24 to 2025–26 (correlation −0.09), bowling a little more (0.06). Qualifying needs 200 pressure balls with 50 in the IPL: 52 batters and 66 bowlers. Price, fitness and XI fit are out of scope.</p>
+        <p class="muted small">The Explorer tab uses the same pressure flag on the raw ball-by-ball data, so its raw strike rates and economies move with the filters; the ratings and tiers come from the report and stay fixed.</p>
+      </div>
+    </div>
+  </section>
+  </main>
+  <footer class="foot">SupeRR Selector Season 2 · 785 matches · IPL + T20I 2022–26 · fan-built, not an official RR product</footer>
+</div>
+<div class="toast" id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="data.js"></script>
+<script src="report.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
