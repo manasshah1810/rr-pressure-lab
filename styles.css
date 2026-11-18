@@ -579,3 +579,36 @@ tbody tr:last-child td{border-bottom:0}
 /* RR squad chart/table toggle */
 .rrchart[data-mode="chart"] .only-table,.rrchart[data-mode="table"] .only-chart{display:none}
 .rrchart .card-head .seg{margin:4px 0 2px}
+
+/* ================= phone hamburger menu ================= */
+.hamb,.menu-h{display:none}
+.hb{display:flex;flex-direction:column;gap:4px;width:18px}
+.hb i{display:block;height:2px;border-radius:2px;background:currentColor;transition:transform .25s,opacity .2s}
+.menu-open .hb i:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.menu-open .hb i:nth-child(2){opacity:0}
+.menu-open .hb i:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+@media (max-width:700px){
+  .hamb{display:grid;position:relative;z-index:60}
+  .menu-open .hamb{color:var(--ink);border-color:var(--ink-3)}
+  .more{display:none!important}
+  .tabs,.tabs.open{position:fixed;top:0;right:0;bottom:0;left:auto;width:min(300px,84vw);display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:2px;
+    padding:88px 16px calc(24px + env(safe-area-inset-bottom));background:var(--card);border:0;border-left:1px solid var(--line);border-radius:0;
+    transform:translateX(105%);transition:transform .3s cubic-bezier(.2,.8,.2,1);z-index:55;overflow-y:auto;visibility:hidden}
+  .tabs.menu{transform:none;visibility:visible;box-shadow:-24px 0 60px rgba(0,0,0,.35)}
+  .tabs .xtra{display:block}
+  .menu-h{display:block;margin:0 14px 10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+  .tabs button,.tabs .xtra{flex:none;text-align:left;padding:15px 16px;font-size:16px;border-radius:12px;white-space:normal;min-height:48px;overflow:visible}
+  .tabs button:hover{background:var(--card-2)!important}
+  .tabs button.on{background:var(--card-2)!important}
+  .tabs button.on::after{left:0;right:auto;top:14px;bottom:14px;width:3px;height:auto}
+  .frame{padding-bottom:40px}
+  .menu-open{overflow:hidden}
+}
+@media (prefers-reduced-motion:reduce){.tabs{transition:none}}
+@media (max-width:700px){
+  .top{grid-template-columns:minmax(0,1fr) auto}
+  .top-r{gap:6px}
+  .top-r .icon{width:40px;height:40px;border-radius:11px}
+  .brand{font-size:17px;min-width:0}
+  .brand small{display:none}
+}

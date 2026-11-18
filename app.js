@@ -571,11 +571,16 @@ function renderMethod() {
 }
 
 /* ---------- boot ---------- */
-$$('#tabs button[data-view]').forEach(b => { b.setAttribute('aria-controls', 'v-' + b.dataset.view); b.onclick = () => { $('#tabs').classList.remove('open'); $('#more').textContent = 'More'; setView(b.dataset.view); }; });
+$$('#tabs button[data-view]').forEach(b => { b.setAttribute('aria-controls', 'v-' + b.dataset.view); b.onclick = () => { $('#tabs').classList.remove('open'); $('#more').textContent = 'More'; closeMenu(); setView(b.dataset.view); }; });
+function openMenu() { $('#tabs').classList.add('menu'); $('#scrim').classList.add('on'); document.body.classList.add('menu-open'); $('#hamb').setAttribute('aria-expanded', 'true'); $('#hamb').setAttribute('aria-label', 'Close menu'); const on = $('#tabs button.on') || $('#tabs button'); on.focus(); }
+function closeMenu() { if (!$('#tabs').classList.contains('menu')) return; $('#tabs').classList.remove('menu'); if (!$('#drawer').classList.contains('on')) $('#scrim').classList.remove('on'); document.body.classList.remove('menu-open'); $('#hamb').setAttribute('aria-expanded', 'false'); $('#hamb').setAttribute('aria-label', 'Open menu'); }
+$('#hamb').onclick = () => $('#tabs').classList.contains('menu') ? closeMenu() : openMenu();
+addEventListener('keydown', e => { if (e.key === 'Escape' && $('#tabs').classList.contains('menu')) { closeMenu(); $('#hamb').focus(); } });
+addEventListener('resize', () => { if (innerWidth > 700) closeMenu(); });
 $('#more').onclick = () => { const o = $('#tabs').classList.toggle('open'); $('#more').setAttribute('aria-expanded', o); $('#more').textContent = o ? 'Less' : 'More'; };
 $('#brand').onclick = e => { e.preventDefault(); setView('rr'); };
 $('#theme').onclick = () => { const c = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = c; try { localStorage.setItem('rr-theme', c); } catch (e) {} renderView(); };
-$('#sl-open').onclick = openSL; $('#sl-close').onclick = closeSL; $('#scrim').onclick = closeSL;
+$('#sl-open').onclick = openSL; $('#sl-close').onclick = closeSL; $('#scrim').onclick = () => { closeSL(); closeMenu(); };
 $('#sl-clear').onclick = () => { S.sl = []; try { localStorage.setItem('rr-sl', '[]'); } catch (e) {} renderSL(); renderView(); };
 $('#sl-csv').onclick = () => {
   if (!S.sl.length) return toast('Shortlist is empty');
