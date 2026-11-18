@@ -392,3 +392,10 @@ body[data-view="rr"] .fg-role{display:none}
   .rrchart .chart-wrap{min-height:340px}
 }
 .kn .gain.dn{color:var(--bad)}
+
+/* ---- splits ---- */
+.row2.mu{align-items:start}
+table.heat td{text-align:center}
+table.heat th.n{text-align:center;white-space:normal;min-width:84px;line-height:1.25}
+table.heat td:first-child{text-align:left}
+tr.thin td{opacity:.55}

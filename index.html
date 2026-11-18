@@ -72,6 +72,12 @@
         <div class="tbl-wrap"><table id="rrtbl"><thead></thead><tbody></tbody></table></div>
       </div>
     </div>
+    <div class="card">
+      <div class="card-head"><h3 id="rrmu-h">Squad matchups on pressure balls <span class="scope live">Filtered</span></h3>
+        <div class="seg" id="rrmu-dim" role="group" aria-label="Split"></div></div>
+      <p class="muted" id="rrmu-sub" style="margin:-6px 0 14px"></p>
+      <div class="tbl-wrap"><table id="rrmu" class="heat"><thead></thead><tbody></tbody></table></div>
+    </div>
   </section>
 
   <!-- RANKINGS -->
@@ -155,6 +161,16 @@
       </div>
     </div>
 
+
+    <div class="card" id="mu-card">
+      <div class="card-head"><h3>Matchups and conditions <span class="scope live">Filtered</span></h3>
+        <div class="seg" id="mu-dim" role="group" aria-label="Split"></div></div>
+      <p class="muted" id="mu-sub" style="margin:-6px 0 14px"></p>
+      <div class="row2 mu">
+        <div class="chart-wrap md"><canvas id="mubar" aria-label="Matchup chart"></canvas><div class="empty" id="mubar-e" hidden></div></div>
+        <div class="tbl-wrap"><table id="mutbl"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
     <div class="card" id="knocks-card">
       <div class="card-head"><h3 id="knocks-h">Pressure knocks <span class="scope rep">Report</span></h3><span class="muted">Gain = runs above an average player on those pressure balls</span></div>
       <div class="knocks" id="knocks"></div>
@@ -240,6 +256,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="data.js"></script>
 <script src="report.js"></script>
+<script src="splits.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

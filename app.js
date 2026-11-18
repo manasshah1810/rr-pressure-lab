@@ -259,6 +259,7 @@ function renderRR() {
   $('#rrtbl thead').innerHTML = `<tr><th>Player</th><th class="n">Pressure ${role === 'bat' ? 'SR' : 'econ'}</th><th class="n">Raw vs league</th><th class="n">Other balls</th><th class="n">2025–26</th><th>Report</th></tr>`;
   $('#rrtbl tbody').innerHTML = list.map(p => { const rp = repBy[role + p.id], d = better(role, p.v, L); return `<tr data-id="${p.id}" class="${p.b < 100 ? 'thin' : ''}"><td><b>${p.n}</b> ${starBtn(role, p.id)}<br><span class="muted">${p.b} pressure balls${p.b < 100 ? ' · thin sample' : ''}</span></td><td class="n">${fmt(p.v, main.d)}</td><td class="n ${d >= 0 ? 'up' : 'dn'}">${sgn(d, main.d)}</td><td class="n">${fmt(p.nv, main.d)}</td><td class="n">${fmt(p.rec, main.d)}</td><td>${rp ? `<span class="tag ${rp.tier}">#${rp.rank}</span>` : '<span class="muted">—</span>'}</td></tr>`; }).join('');
   bindRows('#rrtbl', role);
+  renderRRMatchups(role, squad);
 }
 
 /* ---------- PLAYER ---------- */
@@ -365,11 +366,71 @@ function renderOverview() {
       + (pool ? `<div class="use">In the 2027 auction pool: overall #${pool.rank}, pressure ${pool.cmp} vs average, last IPL side ${pool.last}.</div>` : '');
   }
 
+  renderMatchups(role, id);
   $('#knocks-card').style.display = rep ? '' : 'none';
   if (rep) {
     $('#knocks-h').innerHTML = (role === 'bat' ? 'Pressure knocks: best and worst' : 'Pressure spells: best and worst') + ' <span class="scope rep">Report</span>';
     $('#knocks').innerHTML = rep.games.map(g => `<div class="kn"><div><div class="opp">v ${g.opp}</div><div class="cmp">${g.comp}</div></div><div class="fig">${g.fig}</div><div class="sit">${g.sit} · ${g.pb} pressure balls</div><span class="res ${g.res === 'no result' ? 'no' : g.res}">${g.res}</span><div class="gain ${g.gain < 0 ? 'dn' : ''}">${g.gain > 0 ? '+' : g.gain < 0 ? '−' : ''}${Math.abs(g.gain)}</div></div>`).join('');
   }
+}
+
+
+/* ---------- SPLITS ---------- */
+const SP = window.RR_SPLITS, VEN = SP.venues;
+const DIMS = { bat: [['ps', 'Pace v spin'], ['inn', 'Setting v chasing'], ['ven', 'Venues']], bowl: [['hand', 'v RHB / LHB'], ['inn', 'First v defending'], ['ven', 'Venues']] };
+S.mudim = { bat: 'ps', bowl: 'hand' }; S.rrdim = { bat: 'ps', bowl: 'hand' };
+const add2 = (a, r) => { a.b += r[6]; a.r += r[7]; a.o += r[8]; a.d += r[9]; a.x += r[10]; };
+function splitAgg(role, dim, ids) {
+  const out = {};
+  SP[role].forEach(r => {
+    if (r[4] !== dim || !S.years.has(r[1]) || (S.cls !== 'all' && r[2] !== S.cls) || (ids && !ids.has(r[0]))) return;
+    const k = r[5], o = out[k] || (out[k] = { hp: blank(), n: blank(), byId: {} });
+    add2(r[3] ? o.hp : o.n, r);
+    if (ids) { const p = o.byId[r[0]] || (o.byId[r[0]] = { hp: blank(), n: blank() }); add2(r[3] ? p.hp : p.n, r); }
+  });
+  return out;
+}
+const vLabel = (dim, v) => dim === 'ven' ? (VEN[v] || 'Venue ' + v) : dim === 'hand' ? (v === 'RHB' ? 'v right-handers' : 'v left-handers') : dim === 'ps' ? 'v ' + v.toLowerCase() : v;
+function segDims(sel, role, store, cb) {
+  $(sel).innerHTML = DIMS[role].map(([k, l]) => `<button data-v="${k}" class="${store[role] === k ? 'on' : ''}" aria-pressed="${store[role] === k}">${l}</button>`).join('');
+  $$(sel + ' button').forEach(b => b.onclick = () => { store[role] = b.dataset.v; cb(); });
+}
+function renderMatchups(role, id) {
+  const main = M[role][0], dim = S.mudim[role], ms = M[role];
+  segDims('#mu-dim', role, S.mudim, () => renderMatchups(role, id));
+  const mine = splitAgg(role, dim, new Set([id])), lg = splitAgg(role, dim);
+  let keys = Object.keys(mine).filter(k => mine[k].hp.b + mine[k].n.b > 0);
+  if (dim === 'ven') keys = keys.sort((x, y) => (mine[y].hp.b + mine[y].n.b) - (mine[x].hp.b + mine[x].n.b)).slice(0, 8);
+  else keys.sort();
+  $('#mu-sub').textContent = `${dim === 'ven' ? 'His 8 most-played grounds. IPL ground names come from the team that hosts most games there. ' : ''}Seasons and competition filters apply; phase does not. Faded = under 20 pressure balls.`;
+  const pv = keys.map(k => mine[k].hp.b >= 8 ? +main.f(mine[k].hp).toFixed(2) : null), nv = keys.map(k => mine[k].n.b >= 8 ? +main.f(mine[k].n).toFixed(2) : null), lv = keys.map(k => lg[k] ? +main.f(lg[k].hp).toFixed(2) : null);
+  empty('mubar', keys.length ? '' : 'No balls for this split in the current filter.');
+  if (keys.length) chart('mubar', { data: { labels: keys.map(k => shortV(vLabel(dim, k))), datasets: [
+      { type: 'bar', label: 'Pressure balls', data: pv, backgroundColor: keys.map(k => mine[k].hp.b >= 20 ? css('--pink') : css('--pink') + '55'), borderRadius: 6, barPercentage: .7, categoryPercentage: .7 },
+      { type: 'bar', label: 'Other balls', data: nv, backgroundColor: css('--blue-2') + 'aa', borderRadius: 6, barPercentage: .7, categoryPercentage: .7 },
+      { type: 'line', label: 'League, pressure', data: lv, borderColor: css('--gold'), borderDash: [4, 4], pointRadius: 4, pointBackgroundColor: css('--gold'), showLine: false } ] },
+    options: { indexAxis: dim === 'ven' ? 'y' : 'x', maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }, tooltip: { ...tip(), displayColors: true, callbacks: { title: c => vLabel(dim, keys[c[0].dataIndex]), afterBody: c => { const k = keys[c[0].dataIndex]; return `${mine[k].hp.b} pressure · ${mine[k].n.b} other balls`; } } } },
+      scales: { x: { grid: dim === 'ven' ? grid() : { display: false }, ticks: { color: css('--ink') } }, y: { grid: dim === 'ven' ? { display: false } : grid(), ticks: { color: css('--ink') }, beginAtZero: true } } } });
+  $('#mutbl thead').innerHTML = `<tr><th>${dim === 'ven' ? 'Ground' : 'Split'}</th><th class="n">Pressure balls</th><th class="n">${main.l} pressure</th><th class="n">Other balls</th><th class="n">vs league</th><th class="n">${role === 'bat' ? 'Balls / out' : 'Balls / wkt'}</th></tr>`;
+  $('#mutbl tbody').innerHTML = keys.map(k => { const a = mine[k], p = main.f(a.hp), d = lg[k] ? better(role, p, main.f(lg[k].hp)) : null, thin = a.hp.b < 20;
+    return `<tr class="${thin ? 'thin' : ''} ${/Rajasthan/.test(vLabel(dim, k)) ? 'rr' : ''}" style="cursor:default"><td>${vLabel(dim, k)}</td><td class="n">${a.hp.b}</td><td class="n">${a.hp.b >= 8 ? fmt(p, main.d) : '—'}</td><td class="n">${fmt(main.f(a.n), main.d)}</td><td class="n ${d == null || a.hp.b < 8 ? '' : d >= 0 ? 'up' : 'dn'}">${a.hp.b >= 8 ? sgn(d, main.d) : '—'}</td><td class="n">${fmt(ms[3].f(a.hp), 1)}</td></tr>`; }).join('');
+}
+const shortV = s => s.replace(' home ground', ' home').replace(/ \(\d+ IPL games\)/, '').replace('Royal Challengers Bengaluru', 'RCB').replace('Sunrisers Hyderabad', 'SRH').replace('Lucknow Super Giants', 'LSG').replace('Kolkata Knight Riders', 'KKR').replace('Chennai Super Kings', 'CSK');
+function renderRRMatchups(role, squad) {
+  const main = M[role][0], dim = S.rrdim[role];
+  segDims('#rrmu-dim', role, S.rrdim, () => renderRRMatchups(role, squad));
+  const ids = new Set(squad), sq = splitAgg(role, dim, ids), lg = splitAgg(role, dim);
+  let keys = Object.keys(sq);
+  if (dim === 'ven') { keys = keys.filter(k => /Rajasthan/.test(VEN[k] || '')).concat(keys.filter(k => !/Rajasthan/.test(VEN[k] || '')).sort((x, y) => sq[y].hp.b - sq[x].hp.b).slice(0, 4)); }
+  else keys.sort();
+  $('#rrmu-sub').textContent = `${main.l} on pressure balls for each squad player; the top row pools the whole squad against the league. ${dim === 'ven' ? 'RR home grounds first, then the 4 grounds where the squad faced most pressure balls. ' : ''}Cells under 15 pressure balls are blank.`;
+  const tint = d => { if (d == null || !isFinite(d)) return ''; const s = Math.max(-1, Math.min(1, d / (role === 'bat' ? 40 : 2.5))); return `background:color-mix(in srgb,${s >= 0 ? 'var(--good)' : 'var(--bad)'} ${Math.round(Math.abs(s) * 38)}%,transparent)`; };
+  const cell = (a, k) => { if (!a || a.hp.b < 15) return `<td class="n muted">·</td>`; const v = main.f(a.hp), d = better(role, v, main.f(lg[k].hp)); return `<td class="n" style="${tint(d)}" title="${a.hp.b} pressure balls · ${sgn(d, main.d)} vs league">${fmt(v, main.d)}</td>`; };
+  $('#rrmu thead').innerHTML = `<tr><th>Player</th>${keys.map(k => `<th class="n">${shortV(vLabel(dim, k))}</th>`).join('')}</tr>`;
+  const players = squad.filter(id => keys.some(k => sq[k].byId[id] && sq[k].byId[id].hp.b >= 15));
+  $('#rrmu tbody').innerHTML = `<tr style="cursor:default"><td><b>Whole squad</b><br><span class="muted">league in brackets</span></td>${keys.map(k => { const a = sq[k].hp, v = main.f(a), d = better(role, v, main.f(lg[k].hp)); return `<td class="n" style="${tint(d)}"><b>${fmt(v, main.d)}</b><br><span class="muted">(${fmt(main.f(lg[k].hp), main.d)})</span></td>`; }).join('')}</tr>`
+    + players.map(id => `<tr data-id="${id}"><td><b>${PL[id].n}</b></td>${keys.map(k => cell(sq[k].byId[id], k)).join('')}</tr>`).join('');
+  bindRows('#rrmu', role);
 }
 
 /* ---------- RANKINGS ---------- */
